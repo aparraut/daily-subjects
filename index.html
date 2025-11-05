@@ -384,6 +384,16 @@
         .upsert(payload, { onConflict: "user_id,subject_name,study_date" });
 
       if(error){ console.error("Error guardando:", error); }
+
+      const { error } = await supabase
+       .from(TABLE)
+       .upsert(payload, { onConflict: "user_id,subject_name,study_date" });
+
+     if (error) {
+       console.error("Error guardando:", error);
+       alert("❌ No se pudo guardar: " + (error.message || "revisa consola"));
+     }
+
     }
 
     async function loadWeeklyTableAnimated(baseDate){
@@ -414,4 +424,5 @@
   </script>
 </body>
 </html>
+
 
