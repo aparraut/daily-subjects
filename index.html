@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>📚 Materias Diarias</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f1115;--text:#eaeef5;--table-bg:#151823;--table-shadow:rgba(0,0,0,.3);
+      --th-bg:#263147;--th-text:#e8edf7;--accent:#7db7ff;--input-bg:#1b2130;
+      --highlight:#123b2a;--progress-bg:#222b3f
+    }
+    *{box-sizing:border-box}
+    body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);margin:0;padding:20px}
+    h1{margin:10px 0 16px;font-weight:700;text-align:center}
+    .panel{background:var(--table-bg);border-radius:12px;box-shadow:0 2px 10px var(--table-shadow);padding:18px}
+    .stack{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+    input[type="email"],input[type="password"]{padding:12px 14px;border-radius:10px;border:1px solid #2a334b;background:var(--input-bg);color:var(--text);min-width:220px}
+    button{background:#1f2636;border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;color:var(--text)}
+    button:hover{filter:brightness(1.1)}
+    .btn-home{background:#2b6cb0}
+    .muted{opacity:.85}
+    .week-selector{display:flex;justify-content:center;align-items:center;gap:10px;margin:20px auto;padding:10px 15px;background:var(--table-bg);border-radius:12px;box-shadow:0 2px 8px var(--table-shadow);width:fit-content}
+    #week_range{text-align:center;color:var(--accent);font-weight:600;margin:8px 0 18px}
+    table{width:100%;border-collapse:collapse;border-radius:12px;overflow:hidden;background:var(--table-bg);box-shadow:0 2px 10px var(--table-shadow)}
+    th{background:var(--th-bg);color:var(--th-text);padding:10px;font-weight:700;text-align:center}
+    td{text-align:center;padding:8px;border-bottom:1px solid #2a334b}
+    td input{border:none;background:var(--input-bg);width:44px;height:28px;border-radius:8px;text-align:center;font-weight:700;color:var(--text)}
+    td input:focus{outline:2px solid var(--accent)}
+    tr:hover td{background-color:rgba(255,255,255,.03)}
+    .highlight-green{background-color:var(--highlight)!important}
+    .progress-container{width:110px;height:6px;background:var(--progress-bg);border-radius:4px;margin:6px auto 2px;overflow:hidden}
+    .progress-bar{height:100%;width:0;border-radius:4px;transition:width .45s ease-in-out}
+    .theme-toggle{position:fixed;top:15px;right:15px;border:none;background:var(--table-bg);box-shadow:0 2px 8px var(--table-shadow);color:var(--text);padding:6px 10px;border-radius:50%;font-size:18px;cursor:pointer}
+    #btnLogout{position:fixed;top:15px;right:60px;z-index:1000;display:none}
+    a{color:var(--accent);text-decoration:none}
+    a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+
+  <!-- Botones fijos -->
+  <button id="btnLogout" title="Cerrar sesión">🚪</button>
+  <button id="toggleTheme" class="theme-toggle" title="Cambiar tema">🌓</button>
+
+  <!-- AUTH -->
+  <div id="authScreen" class="panel" style="max-width:780px;margin:20px auto;">
+    <h1>🔐 Iniciar sesión</h1>
+    <div class="stack" style="margin:12px 0 6px">
+      <input id="email" type="email" placeholder="tu@email" />
+      <input id="password" type="password" placeholder="contraseña" />
+    </div>
+    <div class="stack" style="justify-content:center;margin-top:8px">
+      <button id="btnSignIn" class="btn-home">Entrar</button>
+      <button id="btnSignUp">Crear cuenta</button>
+    </div>
+    <p class="muted" style="text-align:center;margin-top:8px">
+      <a href="#" id="linkReset">¿Olvidaste tu contraseña?</a>
+    </p>
+    <p id="authMsg" class="muted" style="text-align:center;margin-top:10px"></p>
+  </div>
+
+  <!-- Home -->
+  <div id="homeScreen" class="panel" style="max-width:900px;margin:20px auto;display:none;">
+    <h1>📘 Materias Diarias</h1>
+    <p class="muted" style="text-align:center">Bienvenido. Desde aquí vas a tu tablero semanal.</p>
+    <div class="stack" style="justify-content:center">
+      <button id="enterButton" class="btn-home">Ir a mis materias</button>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="appContent" style="display:none;max-width:1100px;margin:0 auto;">
+    <h1>📚 Materias Diarias</h1>
+
+    <div class="week-selector">
+      <button id="prev_week">⬅️ Semana anterior</button>
+      <input type="date" id="week_date">
+      <button id="next_week">Semana siguiente ➡️</button>
+    </div>
+
+    <p id="week_range"></p>
+
+    <h2 style="text-align:center">📈 Resumen semanal (Dom–Sáb)</h2>
+    <table id="weeklyTable">
+      <thead>
+        <tr>
+          <th>Materia</th>
+          <th>Dom</th>
+          <th>Lun</th>
+          <th>Mar</th>
+          <th>Mié</th>
+          <th>Jue</th>
+          <th>Vie</th>
+          <th>Sáb</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    /* ========== CONFIG SUPABASE ========== */
+    const SUPABASE_URL = "https://sfippoqwuunkpipegzra.supabase.co"; // tu URL exacta
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaXBwb3F3dXVua3BpcGVnenJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NDMyODcsImV4cCI6MjA3NzMxOTI4N30.p7iiJxu-sWNgpTRMWOSQDkf2poK4q6B1FSlt6XKv25E";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    /* ========== CONSTANTES APP ========== */
+    const TABLE = "daily_subjects";
+    const SUBJECTS = [
+      "Estudio Biblia","Estudio Filosofía","Estudio Idiomas","Informática",
+      "Meditación","Escritura","Lectura","Ejercicios","Conexión con Dios",
+      "Crec. personal","Admón. Casa","Mejora laboral"
+    ];
+    const WEEK1_ANCHOR = new Date(2025, 7, 3); // dom 03/08/2025
+
+    /* ========== REFS UI ========== */
+    const authScreen = document.getElementById("authScreen");
+    const homeScreen = document.getElementById("homeScreen");
+    const appContent = document.getElementById("appContent");
+
+    const btnSignIn = document.getElementById("btnSignIn");
+    const btnSignUp = document.getElementById("btnSignUp");
+    const btnLogout = document.getElementById("btnLogout");
+    const linkReset = document.getElementById("linkReset");
+    const authMsg = document.getElementById("authMsg");
+
+    const enterButton = document.getElementById("enterButton");
+    const weekRangeEl = document.getElementById("week_range");
+    const dateInput = document.getElementById("week_date");
+    const tbody = document.querySelector("#weeklyTable tbody");
+
+    const prevBtn = document.getElementById("prev_week");
+    const nextBtn = document.getElementById("next_week");
+    const themeBtn = document.getElementById("toggleTheme");
+
+    /* ========== TEMA ========== */
+    document.body.dataset.theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    themeBtn.addEventListener("click", () => {
+      document.body.dataset.theme = (document.body.dataset.theme === "dark") ? "light" : "dark";
+    });
+
+    /* ========== HELPERS UI ========== */
+    function showAuth(){ authScreen.style.display="block"; homeScreen.style.display="none"; appContent.style.display="none"; btnLogout.style.display="none"; }
+    function showHome(){ authScreen.style.display="none"; homeScreen.style.display="block"; appContent.style.display="none"; btnLogout.style.display="inline-flex"; }
+    function showApp(){  authScreen.style.display="none"; homeScreen.style.display="none";  appContent.style.display="block"; btnLogout.style.display="inline-flex"; }
+
+    async function refreshUIBySession(){
+      const { data:{ session }, error } = await supabase.auth.getSession();
+      console.log("[auth.getSession]", { session, error });
+      if(session?.user) showHome(); else showAuth();
+    }
+
+    /* ========== HEALTH CHECK (debug rápido) ========== */
+    (async () => {
+      try {
+        const r = await fetch(`${SUPABASE_URL}/auth/v1/health`);
+        console.log("[auth/health]:", r.status);
+      } catch (e) {
+        console.error("[auth/health] fallo:", e);
+      }
+    })();
+
+    /* ========== FECHAS ========== */
+    function normalizeDate(date){ return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
+    function startOfWeek(date){ const d = normalizeDate(date); const day = d.getDay(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()-day); }
+    function formatDate(date){ return date.toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}); }
+    function toISODateLocal(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+
+    /* ========== APP FLOW CENTRAL ========== */
+    function goToApp(){
+      showApp();
+      dateInput.valueAsDate = new Date();
+      loadWeeklyTableAnimated(new Date());
+    }
+
+    /* ========== AUTH: LOGIN / SIGNUP / RESET / LOGOUT ========== */
+    btnSignIn.addEventListener("click", async ()=>{
+      authMsg.textContent="";
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if(!email || !password){ authMsg.textContent="❌ Ingresa email y contraseña"; return; }
+
+      btnSignIn.disabled = true; btnSignIn.textContent = "Entrando…";
+      try{
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if(error){
+          const msg = (error.message||"").toLowerCase();
+          authMsg.textContent =
+            msg.includes("invalid login credentials") ? "❌ Credenciales inválidas." :
+            msg.includes("email not confirmed")       ? "❌ Debes confirmar tu email." :
+            "❌ " + error.message;
+          return;
+        }
+        authMsg.textContent = "✅ ¡Sesión iniciada!";
+        goToApp(); // entra directo al tablero
+      }catch(e){
+        console.error("[signIn] exception:", e);
+        authMsg.textContent = "❌ Error de red o CORS. Revisa la consola.";
+      }finally{
+        btnSignIn.disabled=false; btnSignIn.textContent="Entrar";
+      }
+    });
+
+    btnSignUp.addEventListener("click", async ()=>{
+      authMsg.textContent="";
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+      const { error } = await supabase.auth.signUp({ email, password });
+      authMsg.textContent = error ? "❌ " + error.message : "✅ Cuenta creada. Revisa tu correo si requiere confirmación.";
+    });
+
+    btnLogout.addEventListener("click", async ()=>{
+      try{ await supabase.auth.signOut(); }
+      finally{
+        if(tbody) tbody.innerHTML="";
+        showAuth();
+      }
+    });
+
+    linkReset.addEventListener("click", async (e)=>{
+      e.preventDefault();
+      const email = document.getElementById("email").value.trim();
+      if(!email){ authMsg.textContent = "❌ Escribe tu email para enviar el enlace."; return; }
+      const redirectTo = window.location.origin; // vuelve a esta misma página
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      authMsg.textContent = error ? ("❌ " + error.message) : "✅ Te enviamos un enlace para resetear la contraseña.";
+    });
+
+    // Recovery desde email
+    (async ()=>{
+      const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      if(params.get("type")==="recovery"){
+        const nueva = prompt("Ingresa tu nueva contraseña (mín. 6 caracteres):");
+        if(nueva && nueva.length>=6){
+          const { error } = await supabase.auth.updateUser({ password: nueva });
+          if(error) alert("Error actualizando contraseña: " + error.message);
+          else alert("¡Contraseña actualizada! Inicia sesión nuevamente.");
+        }
+        history.replaceState({}, document.title, window.location.pathname);
+      }
+    })();
+
+    // Un solo listener global de cambios de sesión
+    supabase.auth.onAuthStateChange((event, session)=>{
+      console.log("[onAuthStateChange]", event, session?.user?.id);
+      if(session?.user){
+        btnLogout.style.display="inline-flex";
+        // si viene de refresh o token refresh, aseguro que vea el tablero
+        if(appContent.style.display!=="block") goToApp();
+      }else{
+        btnLogout.style.display="none";
+        showAuth();
+      }
+    });
+
+    /* ========== LÓGICA DE SEMANAS / DATOS ========== */
+    function getProgressColor(total){ if(total<15) return "#e53e3e"; if(total<20) return "#ecc94b"; return "#38a169"; }
+
+    async function calculateWeekNumber(baseDate){
+      const anchorSunday = startOfWeek(WEEK1_ANCHOR);
+      const currentSunday = startOfWeek(baseDate);
+      const diffDays = Math.floor((currentSunday - anchorSunday)/(1000*60*60*24));
+      return Math.floor(diffDays/7)+1;
+    }
+
+    async function fetchWeekData(baseDate){
+      const sunday = startOfWeek(baseDate);
+      const saturday = new Date(sunday); saturday.setDate(sunday.getDate()+6);
+
+      const { data:{ user } } = await supabase.auth.getUser();
+      if(!user){ return { records:[], sunday, saturday }; }
+
+      const { data, error } = await supabase
+        .from(TABLE)
+        .select("*")
+        .eq("user_id", user.id)
+        .gte("study_date", toISODateLocal(sunday))
+        .lte("study_date", toISODateLocal(saturday));
+
+      if(error){ console.error("Supabase select error:", error); return { records:[], sunday, saturday }; }
+      return { records: data||[], sunday, saturday };
+    }
+
+    async function loadWeeklyTable(baseDate){
+      const { records, sunday, saturday } = await fetchWeekData(baseDate);
+      const weekNumber = await calculateWeekNumber(baseDate);
+      weekRangeEl.textContent = `Semana ${weekNumber}: ${formatDate(sunday)} – ${formatDate(saturday)}`;
+
+      const grouped = {}; SUBJECTS.forEach(sub => grouped[sub]=Array(7).fill(""));
+      records.forEach(r=>{
+        const d = normalizeDate(new Date(r.study_date + "T00:00:00"));
+        const dayIndex = d.getDay();
+        if(!grouped[r.subject_name]) grouped[r.subject_name]=Array(7).fill("");
+        grouped[r.subject_name][dayIndex] = r.score ?? "";
+      });
+
+      tbody.innerHTML = "";
+      SUBJECTS.forEach(sub=>{
+        const row = document.createElement("tr");
+        let cells = `<td><b>${sub}</b></td>`;
+        let total = 0;
+
+        for(let i=0;i<7;i++){
+          const currentDate = new Date(sunday); currentDate.setDate(sunday.getDate()+i);
+          const isoDate = toISODateLocal(currentDate);
+          const value = grouped[sub][i] || "";
+          if(value) total += Number(value);
+
+          cells += `<td>
+            <input type="number" min="1" max="5" value="${value}" placeholder="-" 
+                   data-subject="${sub}" data-date="${isoDate}" />
+          </td>`;
+        }
+
+        const progress = Math.min((total/35)*100,100).toFixed(1);
+        const color = getProgressColor(total);
+        cells += `
+          <td class="total-cell" style="font-weight:800;text-align:center;">
+            ${total || ""}
+            <div class="progress-container"><div class="progress-bar" style="width:${progress}%;background:${color};"></div></div>
+          </td>`;
+        row.innerHTML = cells;
+        if(total>=20) row.classList.add("highlight-green");
+        tbody.appendChild(row);
+      });
+
+      document.querySelectorAll("input[data-subject]").forEach(input=>{
+        input.addEventListener("input", e => updateRowTotal(e.target.closest("tr")));
+        input.addEventListener("blur", onBlurSave);
+      });
+    }
+
+    function updateRowTotal(row){
+      const inputs = row.querySelectorAll("input[type='number']");
+      let total = 0; inputs.forEach(i=>{ if(i.value) total += Number(i.value); });
+      const totalCell = row.querySelector(".total-cell");
+      totalCell.childNodes[0].nodeValue = total || "";
+      const bar = row.querySelector(".progress-bar");
+      const progress = Math.min((total/35)*100,100);
+      const color = getProgressColor(total);
+      if(bar){ bar.style.width = `${progress}%`; bar.style.background = color; }
+      if(total>=20) row.classList.add("highlight-green"); else row.classList.remove("highlight-green");
+    }
+
+    function getCustomWeekNumber(dateStr){
+      const d = new Date(dateStr + "T00:00:00");
+      const anchorSunday = startOfWeek(WEEK1_ANCHOR);
+      const currentSunday = startOfWeek(d);
+      const diffDays = Math.floor((currentSunday - anchorSunday)/(1000*60*60*24));
+      return Math.floor(diffDays/7)+1;
+    }
+
+    async function onBlurSave(e){
+      const subject = e.target.dataset.subject;
+      const date = e.target.dataset.date;
+      const score = e.target.value ? Number(e.target.value) : null;
+      if(score===null) return;
+
+      const { data:{ user } } = await supabase.auth.getUser();
+      if(!user?.id){ alert("Inicia sesión para guardar."); return; }
+
+      const payload = {
+        user_id: user.id,
+        subject_name: subject,
+        study_date: date,
+        score,
+        custom_week_number: getCustomWeekNumber(date)
+      };
+
+      const { error } = await supabase
+        .from(TABLE)
+        .upsert(payload, { onConflict: "user_id,subject_name,study_date" });
+
+      if(error){ console.error("Error guardando:", error); }
+    }
+
+    async function loadWeeklyTableAnimated(baseDate){
+      const table = document.querySelector("#weeklyTable");
+      table.style.opacity = 0;
+      await loadWeeklyTable(baseDate);
+      setTimeout(()=>{ table.style.transition="opacity .35s"; table.style.opacity=1; }, 30);
+    }
+
+    /* ========== NAVEGACIÓN SEMANAL ========== */
+    prevBtn.addEventListener("click", ()=>{
+      const current = new Date(dateInput.value); current.setDate(current.getDate()-7);
+      dateInput.valueAsDate = current; loadWeeklyTableAnimated(current);
+    });
+    nextBtn.addEventListener("click", ()=>{
+      const current = new Date(dateInput.value); current.setDate(current.getDate()+7);
+      dateInput.valueAsDate = current; loadWeeklyTableAnimated(current);
+    });
+    dateInput.addEventListener("change", e => loadWeeklyTableAnimated(new Date(e.target.value)));
+
+    /* entrar desde Home */
+    enterButton.addEventListener("click", ()=>{ goToApp(); });
+
+    /* ========== INIT ========== */
+    document.addEventListener("DOMContentLoaded", async ()=>{
+      await refreshUIBySession(); // si ya hay sesión, onAuthStateChange te llevará al tablero
+    });
+  </script>
+</body>
+</html>
