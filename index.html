@@ -362,14 +362,27 @@
       return Math.floor(diffDays/7)+1;
     }
 
-    async function onBlurSave(e){
-      const subject = e.target.dataset.subject;
-      const date = e.target.dataset.date;
-      const score = e.target.value ? Number(e.target.value) : null;
-      if(score===null) return;
+    async function onBlurSave(e) {
+    const input = e.target;
+    const subject = input.dataset.subject;
+    const date = input.dataset.date;
+    const score = input.value ? Number(input.value) : null;
+    if (score === null) return;
 
-      const { data:{ user } } = await supabase.auth.getUser();
-      if(!user?.id){ alert("Inicia sesión para guardar."); return; }
+    // deshabilito el input mientras guarda (opcional)
+    input.disabled = true;
+
+    try {
+      const { data: { user }, error: getUserErr } = await supabase.auth.getUser();
+      if (getUserErr) {
+        console.error("[getUser] error:", getUserErr);
+        alert("❌ Error de sesión. Revisa consola.");
+        return;
+      }
+      if (!user?.id) {
+        alert("Inicia sesión para guardar.");
+        return;
+      }
 
       const payload = {
         user_id: user.id,
@@ -379,21 +392,22 @@
         custom_week_number: getCustomWeekNumber(date)
       };
 
-      const { error } = await supabase
+      // Opción 1 (tu elección): usar UPSERT con índice único ya creado
+      const { error: upsertErr } = await supabase
         .from(TABLE)
         .upsert(payload, { onConflict: "user_id,subject_name,study_date" });
 
-      if(error){ console.error("Error guardando:", error); }
+      if (upsertErr) {
+        console.error("UPSERT error:", upsertErr);
+        alert("❌ No se pudo guardar: " + (upsertErr.message || "revisa consola"));
+        return;
+      }
+      // si quieres, aquí puedes poner un pequeño OK silencioso
+      // console.log("✅ Guardado");
 
-      const { error } = await supabase
-       .from(TABLE)
-       .upsert(payload, { onConflict: "user_id,subject_name,study_date" });
-
-     if (error) {
-       console.error("Error guardando:", error);
-       alert("❌ No se pudo guardar: " + (error.message || "revisa consola"));
-     }
-
+    } finally {
+      input.disabled = false;
+    }
     }
 
     async function loadWeeklyTableAnimated(baseDate){
@@ -424,5 +438,6 @@
   </script>
 </body>
 </html>
+
 
 
