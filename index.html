@@ -229,8 +229,12 @@
       e.preventDefault();
       const email = document.getElementById("email").value.trim();
       if(!email){ authMsg.textContent = "❌ Escribe tu email para enviar el enlace."; return; }
-      const redirectTo = window.location.origin; // vuelve a esta misma página
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+      // URL pública exacta de tu app en GitHub Pages
+      const baseUrl = "https://aparraut.github.io/daily-subjects/";
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: baseUrl,
+      });
       authMsg.textContent = error ? ("❌ " + error.message) : "✅ Te enviamos un enlace para resetear la contraseña.";
     });
 
@@ -410,3 +414,4 @@
   </script>
 </body>
 </html>
+
