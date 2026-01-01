@@ -26,7 +26,7 @@
     .btn-home{background:#2b6cb0}
     .muted{opacity:.85}
     .week-selector{display:flex;justify-content:center;align-items:center;gap:10px;margin:20px auto;padding:10px 15px;background:var(--table-bg);border-radius:12px;box-shadow:0 2px 8px var(--table-shadow);width:fit-content}
-    #week_range{text-align:center;color:var(--accent);font-weight:600;margin:8px 0 18px}
+    #week_range{text-align:center;color:var(--accent);font-weight:600;margin:8px 0 10px}
     table{width:100%;border-collapse:collapse;border-radius:12px;overflow:hidden;background:var(--table-bg);box-shadow:0 2px 10px var(--table-shadow)}
     th{background:var(--th-bg);color:var(--th-text);padding:10px;font-weight:700;text-align:center}
     td{text-align:center;padding:8px;border-bottom:1px solid #2a334b}
@@ -86,6 +86,11 @@
 
     <p id="week_range"></p>
 
+    <!-- Toggle Activas / Histórico -->
+    <div class="stack" style="justify-content:center;margin:0 0 18px;">
+      <button id="toggleSubjectsBtn">Ver histórico (12)</button>
+    </div>
+
     <h2 style="text-align:center">📈 Resumen semanal (Dom–Sáb)</h2>
     <table id="weeklyTable">
       <thead>
@@ -109,18 +114,33 @@
   /* ========== CONFIG SUPABASE ========== */
   const SUPABASE_URL = "https://sfippoqwuunkpipegzra.supabase.co";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaXBwb3F3dXVua3BpcGVnenJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NDMyODcsImV4cCI6MjA3NzMxOTI4N30.p7iiJxu-sWNgpTRMWOSQDkf2poK4q6B1FSlt6XKv25E";
-  //const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   window.supabaseClient = window.supabaseClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   var supabase = window.supabaseClient;
- 
 
   /* ========== CONSTANTES APP ========== */
   const TABLE = "daily_subjects";
+
+  // Lista histórica (12) — NO TOCAR para no “ocultar” datos antiguos
   const SUBJECTS = [
     "Estudio Biblia","Estudio Filosofía","Estudio Idiomas","Informática",
     "Meditación","Escritura","Lectura","Ejercicios","Conexión con Dios",
     "Crec. personal","Admón. Casa","Mejora laboral"
   ];
+
+  // ✅ Lista ACTIVA (solo 6) — la UI muestra esto por defecto
+  // "Bienestar personal" es NUEVA y NO se liga a otras: se guarda tal cual.
+  const ACTIVE_SUBJECTS = [
+    "Estudio Biblia",
+    "Estudio Idiomas",
+    "Informática",
+    "Lectura",
+    "Ejercicios",
+    "Bienestar personal"
+  ];
+
+  // Toggle: por defecto solo activas
+  let showAllSubjects = false;
+
   const WEEK1_ANCHOR = new Date(2025, 7, 3); // dom 03/08/2025
 
   /* ========== REFS UI ========== */
@@ -139,6 +159,7 @@
   const prevBtn = document.getElementById("prev_week");
   const nextBtn = document.getElementById("next_week");
   const themeBtn = document.getElementById("toggleTheme");
+  const toggleSubjectsBtn = document.getElementById("toggleSubjectsBtn");
 
   /* ========== TEMA ========== */
   document.body.dataset.theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
@@ -156,16 +177,6 @@
     console.log("[auth.getSession]", { session, sessionErr });
     if(session?.user) showHome(); else showAuth();
   }
-
-  /* ========== HEALTH CHECK (solo log) ========== */
-  (async () => {
-    try {
-      const r = await fetch(`${SUPABASE_URL}/auth/v1/health`);
-      console.log("[auth/health]:", r.status);
-    } catch (e) {
-      console.error("[auth/health] fallo:", e);
-    }
-  })();
 
   /* ========== FECHAS ========== */
   function normalizeDate(date){ return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
@@ -199,7 +210,6 @@
           "❌ " + authErr.message;
         return;
       }
-      // Doble verificación y paso a tablero
       const { data:{ session } } = await supabase.auth.getSession();
       if(session?.user){ authMsg.textContent = "✅ ¡Sesión iniciada!"; goToApp(); }
       else { authMsg.textContent = "❌ No se pudo abrir la sesión."; }
@@ -252,7 +262,6 @@
     }
   })();
 
-  // Listener de sesión (si refresca o renueva token, pasa a tablero)
   supabase.auth.onAuthStateChange((event, session)=>{
     console.log("[onAuthStateChange]", event, session?.user?.id);
     if(session?.user){
@@ -297,7 +306,15 @@
     const weekNumber = await calculateWeekNumber(baseDate);
     weekRangeEl.textContent = `Semana ${weekNumber}: ${formatDate(sunday)} – ${formatDate(saturday)}`;
 
-    const grouped = {}; SUBJECTS.forEach(sub => grouped[sub]=Array(7).fill(""));
+    // ✅ Materias visibles según toggle
+    const VISIBLE_SUBJECTS = showAllSubjects ? SUBJECTS : ACTIVE_SUBJECTS;
+
+    // ✅ Evita errores si la materia activa aún no tiene registros
+    const allSubjectsForGrouping = new Set([...SUBJECTS, ...ACTIVE_SUBJECTS]);
+    const grouped = {};
+    allSubjectsForGrouping.forEach(sub => grouped[sub] = Array(7).fill(""));
+
+    // Mapear registros
     records.forEach(r=>{
       const d = normalizeDate(new Date(r.study_date + "T00:00:00"));
       const dayIndex = d.getDay();
@@ -306,7 +323,7 @@
     });
 
     tbody.innerHTML = "";
-    SUBJECTS.forEach(sub=>{
+    VISIBLE_SUBJECTS.forEach(sub=>{
       const row = document.createElement("tr");
       let cells = `<td><b>${sub}</b></td>`;
       let total = 0;
@@ -314,7 +331,7 @@
       for(let i=0;i<7;i++){
         const currentDate = new Date(sunday); currentDate.setDate(sunday.getDate()+i);
         const isoDate = toISODateLocal(currentDate);
-        const value = grouped[sub][i] || "";
+        const value = (grouped[sub] ? grouped[sub][i] : "") || "";
         if(value) total += Number(value);
 
         cells += `<td>
@@ -422,6 +439,13 @@
   dateInput.addEventListener("change", e => loadWeeklyTableAnimated(new Date(e.target.value)));
   enterButton.addEventListener("click", ()=>{ goToApp(); });
 
+  // Toggle: solo activas / histórico
+  toggleSubjectsBtn.addEventListener("click", ()=>{
+    showAllSubjects = !showAllSubjects;
+    toggleSubjectsBtn.textContent = showAllSubjects ? "Ver solo activas (6)" : "Ver histórico (12)";
+    loadWeeklyTableAnimated(new Date(dateInput.value));
+  });
+
   /* ========== INIT ========== */
   document.addEventListener("DOMContentLoaded", async ()=>{
     await refreshUIBySession();
@@ -430,12 +454,3 @@
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
