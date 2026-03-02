@@ -11,12 +11,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root{
+      --bg:#f4f6fb;--text:#1a2233;--table-bg:#ffffff;--table-shadow:rgba(15,23,42,.12);
+      --th-bg:#e4ebfa;--th-text:#1a2847;--accent:#1e5aa8;--input-bg:#f3f6ff;
+      --highlight:#d8f3df;--progress-bg:#d8e2f7
+    }
+    body[data-theme="dark"]{
       --bg:#0f1115;--text:#eaeef5;--table-bg:#151823;--table-shadow:rgba(0,0,0,.3);
       --th-bg:#263147;--th-text:#e8edf7;--accent:#7db7ff;--input-bg:#1b2130;
       --highlight:#123b2a;--progress-bg:#222b3f
     }
     *{box-sizing:border-box}
-    body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);margin:0;padding:20px}
+    body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);margin:0;padding:20px;transition:background-color .2s ease,color .2s ease}
     h1{margin:10px 0 16px;font-weight:700;text-align:center}
     .panel{background:var(--table-bg);border-radius:12px;box-shadow:0 2px 10px var(--table-shadow);padding:18px}
     .stack{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
@@ -36,7 +41,7 @@
     .highlight-green{background-color:var(--highlight)!important}
     .progress-container{width:110px;height:6px;background:var(--progress-bg);border-radius:4px;margin:6px auto 2px;overflow:hidden}
     .progress-bar{height:100%;width:0;border-radius:4px;transition:width .45s ease-in-out}
-    .theme-toggle{position:fixed;top:15px;right:15px;border:none;background:var(--table-bg);box-shadow:0 2px 8px var(--table-shadow);color:var(--text);padding:6px 10px;border-radius:50%;font-size:18px;cursor:pointer}
+    .theme-toggle{position:fixed;top:15px;right:15px;border:none;background:var(--table-bg);box-shadow:0 2px 8px var(--table-shadow);color:var(--text);padding:8px 10px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
     #btnLogout{position:fixed;top:15px;right:60px;z-index:1000;display:none}
     a{color:var(--accent);text-decoration:none}
     a:hover{text-decoration:underline}
@@ -162,9 +167,21 @@
   const toggleSubjectsBtn = document.getElementById("toggleSubjectsBtn");
 
   /* ========== TEMA ========== */
-  document.body.dataset.theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const savedTheme = localStorage.getItem("theme");
+  const preferredTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.body.dataset.theme = savedTheme || preferredTheme;
+
+  function syncThemeButton(){
+    const isDark = document.body.dataset.theme === "dark";
+    themeBtn.textContent = isDark ? "Light" : "Dark";
+    themeBtn.title = isDark ? "Cambiar a tema claro" : "Cambiar a tema oscuro";
+  }
+
+  syncThemeButton();
   themeBtn.addEventListener("click", () => {
     document.body.dataset.theme = (document.body.dataset.theme === "dark") ? "light" : "dark";
+    localStorage.setItem("theme", document.body.dataset.theme);
+    syncThemeButton();
   });
 
   /* ========== HELPERS UI ========== */
@@ -325,8 +342,13 @@
     tbody.innerHTML = "";
     VISIBLE_SUBJECTS.forEach(sub=>{
       const row = document.createElement("tr");
-      let cells = `<td><b>${sub}</b></td>`;
       let total = 0;
+
+      const subjectCell = document.createElement("td");
+      const subjectBold = document.createElement("b");
+      subjectBold.textContent = sub;
+      subjectCell.appendChild(subjectBold);
+      row.appendChild(subjectCell);
 
       for(let i=0;i<7;i++){
         const currentDate = new Date(sunday); currentDate.setDate(sunday.getDate()+i);
@@ -334,26 +356,51 @@
         const value = (grouped[sub] ? grouped[sub][i] : "") || "";
         if(value) total += Number(value);
 
-        cells += `<td>
-          <input type="number" min="1" max="5" value="${value}" placeholder="-" 
-                 data-subject="${sub}" data-date="${isoDate}" />
-        </td>`;
+        const dayCell = document.createElement("td");
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "1";
+        input.max = "5";
+        input.step = "1";
+        input.placeholder = "-";
+        input.dataset.subject = sub;
+        input.dataset.date = isoDate;
+        input.value = value;
+        dayCell.appendChild(input);
+        row.appendChild(dayCell);
       }
 
       const progress = Math.min((total/35)*100,100).toFixed(1);
       const color = getProgressColor(total);
-      cells += `
-        <td class="total-cell" style="font-weight:800;text-align:center;">
-          ${total || ""}
-          <div class="progress-container"><div class="progress-bar" style="width:${progress}%;background:${color};"></div></div>
-        </td>`;
-      row.innerHTML = cells;
+      const totalCell = document.createElement("td");
+      totalCell.className = "total-cell";
+      totalCell.style.fontWeight = "800";
+      totalCell.style.textAlign = "center";
+
+      const totalValue = document.createElement("span");
+      totalValue.className = "total-value";
+      totalValue.textContent = total || "";
+      totalCell.appendChild(totalValue);
+
+      const progressContainer = document.createElement("div");
+      progressContainer.className = "progress-container";
+      const progressBar = document.createElement("div");
+      progressBar.className = "progress-bar";
+      progressBar.style.width = `${progress}%`;
+      progressBar.style.background = color;
+      progressContainer.appendChild(progressBar);
+      totalCell.appendChild(progressContainer);
+
+      row.appendChild(totalCell);
       if(total>=20) row.classList.add("highlight-green");
       tbody.appendChild(row);
     });
 
     document.querySelectorAll("input[data-subject]").forEach(input=>{
-      input.addEventListener("input", e => updateRowTotal(e.target.closest("tr")));
+      input.addEventListener("input", e => {
+        isValidScoreInput(e.target);
+        updateRowTotal(e.target.closest("tr"));
+      });
       input.addEventListener("blur", onBlurSave);
     });
   }
@@ -362,12 +409,24 @@
     const inputs = row.querySelectorAll("input[type='number']");
     let total = 0; inputs.forEach(i=>{ if(i.value) total += Number(i.value); });
     const totalCell = row.querySelector(".total-cell");
-    totalCell.childNodes[0].nodeValue = total || "";
+    const totalValue = totalCell.querySelector(".total-value");
+    totalValue.textContent = total || "";
     const bar = row.querySelector(".progress-bar");
     const progress = Math.min((total/35)*100,100);
     const color = getProgressColor(total);
     if(bar){ bar.style.width = `${progress}%`; bar.style.background = color; }
     if(total>=20) row.classList.add("highlight-green"); else row.classList.remove("highlight-green");
+  }
+
+  function isValidScoreInput(input){
+    if(!input.value){
+      input.setCustomValidity("");
+      return true;
+    }
+    const score = Number(input.value);
+    const isValid = Number.isInteger(score) && score >= 1 && score <= 5;
+    input.setCustomValidity(isValid ? "" : "Ingresa un entero de 1 a 5.");
+    return isValid;
   }
 
   function getCustomWeekNumber(dateStr){
@@ -380,10 +439,14 @@
 
   async function onBlurSave(e) {
     const input = e.target;
+    if(!isValidScoreInput(input)){
+      input.reportValidity();
+      return;
+    }
     const subject = input.dataset.subject;
     const date = input.dataset.date;
-    const score = input.value ? Number(input.value) : null;
-    if (score === null) return;
+    const rawScore = input.value.trim();
+    const score = rawScore === "" ? null : Number(rawScore);
 
     input.disabled = true;
     try {
@@ -398,6 +461,28 @@
         return;
       }
 
+      if (score === null) {
+        const { error: deleteErr } = await supabase
+          .from(TABLE)
+          .delete()
+          .eq("user_id", user.id)
+          .eq("subject_name", subject)
+          .eq("study_date", date);
+
+        if (deleteErr) {
+          console.error("DELETE error:", deleteErr);
+          alert("Error: No se pudo borrar: " + (deleteErr.message || "revisa consola"));
+        }
+        return;
+      }
+
+      if (!Number.isInteger(score) || score < 1 || score > 5) {
+        alert("Error: El valor debe ser un entero entre 1 y 5.");
+        input.value = "";
+        updateRowTotal(input.closest("tr"));
+        return;
+      }
+
       const payload = {
         user_id: user.id,
         subject_name: subject,
@@ -406,7 +491,7 @@
         custom_week_number: getCustomWeekNumber(date)
       };
 
-      const { data: upData, error: upsertErr } = await supabase
+      const { error: upsertErr } = await supabase
         .from(TABLE)
         .upsert(payload, { onConflict: "user_id,subject_name,study_date" });
 
