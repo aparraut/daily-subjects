@@ -24,18 +24,22 @@
   <!-- AUTH -->
   <div id="authScreen" class="panel" style="max-width:780px;margin:20px auto;">
     <h1>Iniciar sesion</h1>
-    <div class="stack" style="margin:12px 0 6px">
-      <input id="email" type="email" placeholder="tu@email" />
-      <input id="password" type="password" placeholder="contrasena" />
-    </div>
-    <div class="stack" style="justify-content:center;margin-top:8px">
-      <button id="btnSignIn" class="btn-home">Entrar</button>
-      <button id="btnSignUp">Crear cuenta</button>
-    </div>
-    <p class="muted" style="text-align:center;margin-top:8px">
-      <a href="#" id="linkReset">Olvidaste tu contrasena?</a>
-    </p>
-    <p id="authMsg" class="muted" style="text-align:center;margin-top:10px"></p>
+    <form id="authForm" novalidate>
+      <div class="stack" style="margin:12px 0 6px">
+        <label for="email" class="sr-only">Email</label>
+        <input id="email" type="email" placeholder="tu@email" autocomplete="email" />
+        <label for="password" class="sr-only">Contrasena</label>
+        <input id="password" type="password" placeholder="contrasena" autocomplete="current-password" />
+      </div>
+      <div class="stack" style="justify-content:center;margin-top:8px">
+        <button id="btnSignIn" type="submit" class="btn-home">Entrar</button>
+        <button id="btnSignUp" type="button">Crear cuenta</button>
+      </div>
+      <p class="muted" style="text-align:center;margin-top:8px">
+        <a href="#" id="linkReset">Olvidaste tu contrasena?</a>
+      </p>
+      <p id="authMsg" class="muted" aria-live="polite" style="text-align:center;margin-top:10px"></p>
+    </form>
   </div>
 
   <!-- Home -->
@@ -87,8 +91,9 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="recoveryTitle">
       <h3 id="recoveryTitle">Restablecer contrasena</h3>
       <p class="muted">Ingresa una nueva contrasena (minimo 6 caracteres).</p>
-      <input id="recoveryPassword" type="password" placeholder="Nueva contrasena" minlength="6" />
-      <p id="recoveryMsg" class="muted" style="min-height:20px;margin:8px 0 0;"></p>
+      <label for="recoveryPassword" class="sr-only">Nueva contrasena</label>
+      <input id="recoveryPassword" type="password" placeholder="Nueva contrasena" minlength="6" autocomplete="new-password" />
+      <p id="recoveryMsg" class="muted" aria-live="polite" style="min-height:20px;margin:8px 0 0;"></p>
       <div class="stack" style="justify-content:flex-end;margin-top:10px;">
         <button id="recoveryCancel" type="button">Cancelar</button>
         <button id="recoverySave" type="button" class="btn-home">Guardar</button>

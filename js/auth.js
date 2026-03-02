@@ -14,10 +14,10 @@ export function initAuth({
   closeRecoveryModal,
   showNotice
 }){
-  refs.btnSignIn.addEventListener("click", async ()=>{
+  async function handleSignIn(){
     refs.authMsg.textContent = "";
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
+    const email = refs.emailInput.value.trim();
+    const password = refs.passwordInput.value;
     if(!email || !password){ refs.authMsg.textContent = "Error: Ingresa email y contrasena"; return; }
 
     refs.btnSignIn.disabled = true;
@@ -43,12 +43,17 @@ export function initAuth({
       refs.btnSignIn.disabled = false;
       refs.btnSignIn.textContent = "Entrar";
     }
+  }
+
+  refs.authForm.addEventListener("submit", async (e)=>{
+    e.preventDefault();
+    await handleSignIn();
   });
 
   refs.btnSignUp.addEventListener("click", async ()=>{
     refs.authMsg.textContent = "";
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
+    const email = refs.emailInput.value.trim();
+    const password = refs.passwordInput.value;
     const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email, password });
     console.log("[signUp]", { signUpData, signUpErr });
     refs.authMsg.textContent = signUpErr ? "Error: " + signUpErr.message : "Cuenta creada. Revisa tu correo si requiere confirmacion.";
@@ -64,7 +69,7 @@ export function initAuth({
 
   refs.linkReset.addEventListener("click", async (e)=>{
     e.preventDefault();
-    const email = document.getElementById("email").value.trim();
+    const email = refs.emailInput.value.trim();
     if(!email){ refs.authMsg.textContent = "Error: Escribe tu email para enviar el enlace."; return; }
     const baseUrl = "https://aparraut.github.io/daily-subjects/";
     const { data: resetData, error: resetErr } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: baseUrl });
@@ -81,6 +86,14 @@ export function initAuth({
   })();
 
   refs.recoveryCancel.addEventListener("click", ()=> closeRecoveryModal(refs));
+  refs.recoveryModal.addEventListener("click", (e)=>{
+    if(e.target === refs.recoveryModal) closeRecoveryModal(refs);
+  });
+  document.addEventListener("keydown", (e)=>{
+    if(e.key === "Escape" && refs.recoveryModal.style.display === "flex"){
+      closeRecoveryModal(refs);
+    }
+  });
   refs.recoverySave.addEventListener("click", async ()=>{
     const nueva = refs.recoveryPassword.value.trim();
     if(nueva.length < 6){

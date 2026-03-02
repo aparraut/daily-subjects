@@ -1,8 +1,11 @@
 export function getUIRefs(){
   return {
     authScreen: document.getElementById("authScreen"),
+    authForm: document.getElementById("authForm"),
     homeScreen: document.getElementById("homeScreen"),
     appContent: document.getElementById("appContent"),
+    emailInput: document.getElementById("email"),
+    passwordInput: document.getElementById("password"),
     btnSignIn: document.getElementById("btnSignIn"),
     btnSignUp: document.getElementById("btnSignUp"),
     btnLogout: document.getElementById("btnLogout"),
