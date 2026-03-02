@@ -33,3 +33,62 @@ tr:hover td{background-color:rgba(255,255,255,.03)}
 #btnLogout{position:fixed;top:15px;right:60px;z-index:1000;display:none}
 a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
+
+.app-notice{
+  position:fixed;
+  left:50%;
+  top:14px;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  z-index:1200;
+  background:var(--table-bg);
+  color:var(--text);
+  border:1px solid #2a334b;
+  border-radius:10px;
+  padding:10px 12px;
+  box-shadow:0 6px 18px var(--table-shadow);
+  max-width:min(92vw,700px);
+}
+
+.app-notice[data-type="error"]{ border-color:#b63a3a; }
+.app-notice[data-type="success"]{ border-color:#2f8f5e; }
+.app-notice button{
+  padding:4px 8px;
+  border-radius:6px;
+}
+
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:1300;
+}
+
+.modal-card{
+  width:min(92vw,420px);
+  background:var(--table-bg);
+  color:var(--text);
+  border:1px solid #2a334b;
+  border-radius:12px;
+  box-shadow:0 16px 30px var(--table-shadow);
+  padding:16px;
+}
+
+.modal-card h3{
+  margin:0 0 8px;
+}
+
+.modal-card input[type="password"]{
+  width:100%;
+  margin-top:8px;
+  padding:12px 14px;
+  border-radius:10px;
+  border:1px solid #2a334b;
+  background:var(--input-bg);
+  color:var(--text);
+}

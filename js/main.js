@@ -14,11 +14,15 @@ import {
 import {
   getUIRefs,
   initTheme,
+  initNotice,
   showAuth,
   showHome,
   showApp,
   updateRowTotal,
-  isValidScoreInput
+  isValidScoreInput,
+  showNotice,
+  openRecoveryModal,
+  closeRecoveryModal
 } from "./ui.js";
 import { initAuth, refreshUIBySession } from "./auth.js";
 
@@ -29,6 +33,7 @@ const supabase = window.supabaseClient;
 
 const refs = getUIRefs();
 initTheme(refs.themeBtn);
+initNotice(refs);
 
 let showAllSubjects = false;
 
@@ -138,11 +143,11 @@ async function onBlurSave(e) {
     const { data: { user }, error: getUserErr } = await supabase.auth.getUser();
     if (getUserErr) {
       console.error("[getUser] error:", getUserErr);
-      alert("Error: Sesion invalida. Revisa consola.");
+      showNotice(refs, "Error: Sesion invalida. Revisa consola.", "error");
       return;
     }
     if (!user?.id) {
-      alert("Inicia sesion para guardar.");
+      showNotice(refs, "Inicia sesion para guardar.", "error");
       return;
     }
 
@@ -150,13 +155,13 @@ async function onBlurSave(e) {
       const { error: deleteErr } = await deleteDailyScore(supabase, user.id, subject, date);
       if (deleteErr) {
         console.error("DELETE error:", deleteErr);
-        alert("Error: No se pudo borrar: " + (deleteErr.message || "revisa consola"));
+        showNotice(refs, "Error: No se pudo borrar: " + (deleteErr.message || "revisa consola"), "error");
       }
       return;
     }
 
     if (!Number.isInteger(score) || score < 1 || score > 5) {
-      alert("Error: El valor debe ser un entero entre 1 y 5.");
+      showNotice(refs, "Error: El valor debe ser un entero entre 1 y 5.", "error");
       input.value = "";
       updateRowTotal(input.closest("tr"), getProgressColor);
       return;
@@ -173,7 +178,7 @@ async function onBlurSave(e) {
     const { error: upsertErr } = await upsertDailyScore(supabase, payload);
     if (upsertErr) {
       console.error("UPSERT error:", upsertErr);
-      alert("Error: No se pudo guardar: " + (upsertErr.message || "revisa consola"));
+      showNotice(refs, "Error: No se pudo guardar: " + (upsertErr.message || "revisa consola"), "error");
       return;
     }
   } finally {
@@ -215,7 +220,10 @@ initAuth({
   refs,
   showAuth,
   isAppVisible: () => refs.appContent.style.display === "block",
-  goToApp
+  goToApp,
+  openRecoveryModal,
+  closeRecoveryModal,
+  showNotice
 });
 
 document.addEventListener("DOMContentLoaded", async ()=>{

@@ -15,7 +15,15 @@ export function getUIRefs(){
     prevBtn: document.getElementById("prev_week"),
     nextBtn: document.getElementById("next_week"),
     themeBtn: document.getElementById("toggleTheme"),
-    toggleSubjectsBtn: document.getElementById("toggleSubjectsBtn")
+    toggleSubjectsBtn: document.getElementById("toggleSubjectsBtn"),
+    appNotice: document.getElementById("appNotice"),
+    appNoticeText: document.getElementById("appNoticeText"),
+    appNoticeClose: document.getElementById("appNoticeClose"),
+    recoveryModal: document.getElementById("recoveryModal"),
+    recoveryPassword: document.getElementById("recoveryPassword"),
+    recoveryMsg: document.getElementById("recoveryMsg"),
+    recoverySave: document.getElementById("recoverySave"),
+    recoveryCancel: document.getElementById("recoveryCancel")
   };
 }
 
@@ -82,4 +90,36 @@ export function isValidScoreInput(input){
   const isValid = Number.isInteger(score) && score >= 1 && score <= 5;
   input.setCustomValidity(isValid ? "" : "Ingresa un entero de 1 a 5.");
   return isValid;
+}
+
+let noticeTimer = null;
+
+export function initNotice(refs){
+  refs.appNoticeClose.addEventListener("click", ()=> hideNotice(refs));
+}
+
+export function showNotice(refs, message, type = "info", timeoutMs = 4000){
+  refs.appNotice.dataset.type = type;
+  refs.appNoticeText.textContent = message;
+  refs.appNotice.style.display = "flex";
+  if(noticeTimer) clearTimeout(noticeTimer);
+  if(timeoutMs > 0){
+    noticeTimer = setTimeout(()=> hideNotice(refs), timeoutMs);
+  }
+}
+
+export function hideNotice(refs){
+  refs.appNotice.style.display = "none";
+}
+
+export function openRecoveryModal(refs){
+  refs.recoveryModal.style.display = "flex";
+  refs.recoveryMsg.textContent = "";
+  refs.recoveryPassword.value = "";
+  refs.recoveryPassword.focus();
+}
+
+export function closeRecoveryModal(refs){
+  refs.recoveryModal.style.display = "none";
+  refs.recoveryMsg.textContent = "";
 }

@@ -1,15 +1,15 @@
 export const TABLE = "daily_subjects";
 
 export const SUBJECTS = [
-  "Estudio Biblia","Estudio FilosofÃ­a","Estudio Idiomas","InformÃ¡tica",
-  "MeditaciÃ³n","Escritura","Lectura","Ejercicios","ConexiÃ³n con Dios",
-  "Crec. personal","AdmÃ³n. Casa","Mejora laboral"
+  "Estudio Biblia","Estudio Filosofia","Estudio Idiomas","Informatica",
+  "Meditacion","Escritura","Lectura","Ejercicios","Conexion con Dios",
+  "Crec. personal","Admon. Casa","Mejora laboral"
 ];
 
 export const ACTIVE_SUBJECTS = [
   "Estudio Biblia",
   "Estudio Idiomas",
-  "InformÃ¡tica",
+  "Informatica",
   "Lectura",
   "Ejercicios",
   "Bienestar personal"

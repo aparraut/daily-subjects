@@ -9,7 +9,10 @@ export function initAuth({
   refs,
   showAuth,
   isAppVisible,
-  goToApp
+  goToApp,
+  openRecoveryModal,
+  closeRecoveryModal,
+  showNotice
 }){
   refs.btnSignIn.addEventListener("click", async ()=>{
     refs.authMsg.textContent = "";
@@ -72,15 +75,31 @@ export function initAuth({
   (async ()=>{
     const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     if(params.get("type")==="recovery"){
-      const nueva = prompt("Ingresa tu nueva contrasena (min. 6 caracteres):");
-      if(nueva && nueva.length>=6){
-        const { data: updData, error: updateErr } = await supabase.auth.updateUser({ password: nueva });
-        if(updateErr) alert("Error actualizando contrasena: " + updateErr.message);
-        else alert("Contrasena actualizada. Inicia sesion nuevamente.");
-      }
+      openRecoveryModal(refs);
       history.replaceState({}, document.title, window.location.pathname);
     }
   })();
+
+  refs.recoveryCancel.addEventListener("click", ()=> closeRecoveryModal(refs));
+  refs.recoverySave.addEventListener("click", async ()=>{
+    const nueva = refs.recoveryPassword.value.trim();
+    if(nueva.length < 6){
+      refs.recoveryMsg.textContent = "Error: Minimo 6 caracteres.";
+      return;
+    }
+    refs.recoverySave.disabled = true;
+    try{
+      const { error: updateErr } = await supabase.auth.updateUser({ password: nueva });
+      if(updateErr){
+        refs.recoveryMsg.textContent = "Error: " + updateErr.message;
+        return;
+      }
+      closeRecoveryModal(refs);
+      showNotice(refs, "Contrasena actualizada. Inicia sesion nuevamente.", "success");
+    }finally{
+      refs.recoverySave.disabled = false;
+    }
+  });
 
   supabase.auth.onAuthStateChange((event, session)=>{
     console.log("[onAuthStateChange]", event, session?.user?.id);

@@ -12,6 +12,10 @@
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
+  <div id="appNotice" class="app-notice" role="status" aria-live="polite" style="display:none;">
+    <span id="appNoticeText"></span>
+    <button id="appNoticeClose" type="button" aria-label="Cerrar mensaje">x</button>
+  </div>
 
   <!-- Botones fijos -->
   <button id="btnLogout" title="Cerrar sesion">Salir</button>
@@ -77,6 +81,19 @@
       </thead>
       <tbody></tbody>
     </table>
+  </div>
+
+  <div id="recoveryModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="recoveryTitle">
+      <h3 id="recoveryTitle">Restablecer contrasena</h3>
+      <p class="muted">Ingresa una nueva contrasena (minimo 6 caracteres).</p>
+      <input id="recoveryPassword" type="password" placeholder="Nueva contrasena" minlength="6" />
+      <p id="recoveryMsg" class="muted" style="min-height:20px;margin:8px 0 0;"></p>
+      <div class="stack" style="justify-content:flex-end;margin-top:10px;">
+        <button id="recoveryCancel" type="button">Cancelar</button>
+        <button id="recoverySave" type="button" class="btn-home">Guardar</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="./js/main.js"></script>
