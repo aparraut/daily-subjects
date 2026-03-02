@@ -1,0 +1,35 @@
+:root{
+  --bg:#f4f6fb;--text:#1a2233;--table-bg:#ffffff;--table-shadow:rgba(15,23,42,.12);
+  --th-bg:#e4ebfa;--th-text:#1a2847;--accent:#1e5aa8;--input-bg:#f3f6ff;
+  --highlight:#d8f3df;--progress-bg:#d8e2f7
+}
+body[data-theme="dark"]{
+  --bg:#0f1115;--text:#eaeef5;--table-bg:#151823;--table-shadow:rgba(0,0,0,.3);
+  --th-bg:#263147;--th-text:#e8edf7;--accent:#7db7ff;--input-bg:#1b2130;
+  --highlight:#123b2a;--progress-bg:#222b3f
+}
+*{box-sizing:border-box}
+body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);margin:0;padding:20px;transition:background-color .2s ease,color .2s ease}
+h1{margin:10px 0 16px;font-weight:700;text-align:center}
+.panel{background:var(--table-bg);border-radius:12px;box-shadow:0 2px 10px var(--table-shadow);padding:18px}
+.stack{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+input[type="email"],input[type="password"]{padding:12px 14px;border-radius:10px;border:1px solid #2a334b;background:var(--input-bg);color:var(--text);min-width:220px}
+button{background:#1f2636;border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;color:var(--text)}
+button:hover{filter:brightness(1.1)}
+.btn-home{background:#2b6cb0}
+.muted{opacity:.85}
+.week-selector{display:flex;justify-content:center;align-items:center;gap:10px;margin:20px auto;padding:10px 15px;background:var(--table-bg);border-radius:12px;box-shadow:0 2px 8px var(--table-shadow);width:fit-content}
+#week_range{text-align:center;color:var(--accent);font-weight:600;margin:8px 0 10px}
+table{width:100%;border-collapse:collapse;border-radius:12px;overflow:hidden;background:var(--table-bg);box-shadow:0 2px 10px var(--table-shadow)}
+th{background:var(--th-bg);color:var(--th-text);padding:10px;font-weight:700;text-align:center}
+td{text-align:center;padding:8px;border-bottom:1px solid #2a334b}
+td input{border:none;background:var(--input-bg);width:44px;height:28px;border-radius:8px;text-align:center;font-weight:700;color:var(--text)}
+td input:focus{outline:2px solid var(--accent)}
+tr:hover td{background-color:rgba(255,255,255,.03)}
+.highlight-green{background-color:var(--highlight)!important}
+.progress-container{width:110px;height:6px;background:var(--progress-bg);border-radius:4px;margin:6px auto 2px;overflow:hidden}
+.progress-bar{height:100%;width:0;border-radius:4px;transition:width .45s ease-in-out}
+.theme-toggle{position:fixed;top:15px;right:15px;border:none;background:var(--table-bg);box-shadow:0 2px 8px var(--table-shadow);color:var(--text);padding:8px 10px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
+#btnLogout{position:fixed;top:15px;right:60px;z-index:1000;display:none}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}

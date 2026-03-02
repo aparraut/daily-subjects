@@ -2,78 +2,42 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>📚 Materias Diarias</title>
+  <title>Materias Diarias</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --bg:#f4f6fb;--text:#1a2233;--table-bg:#ffffff;--table-shadow:rgba(15,23,42,.12);
-      --th-bg:#e4ebfa;--th-text:#1a2847;--accent:#1e5aa8;--input-bg:#f3f6ff;
-      --highlight:#d8f3df;--progress-bg:#d8e2f7
-    }
-    body[data-theme="dark"]{
-      --bg:#0f1115;--text:#eaeef5;--table-bg:#151823;--table-shadow:rgba(0,0,0,.3);
-      --th-bg:#263147;--th-text:#e8edf7;--accent:#7db7ff;--input-bg:#1b2130;
-      --highlight:#123b2a;--progress-bg:#222b3f
-    }
-    *{box-sizing:border-box}
-    body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);margin:0;padding:20px;transition:background-color .2s ease,color .2s ease}
-    h1{margin:10px 0 16px;font-weight:700;text-align:center}
-    .panel{background:var(--table-bg);border-radius:12px;box-shadow:0 2px 10px var(--table-shadow);padding:18px}
-    .stack{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-    input[type="email"],input[type="password"]{padding:12px 14px;border-radius:10px;border:1px solid #2a334b;background:var(--input-bg);color:var(--text);min-width:220px}
-    button{background:#1f2636;border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;color:var(--text)}
-    button:hover{filter:brightness(1.1)}
-    .btn-home{background:#2b6cb0}
-    .muted{opacity:.85}
-    .week-selector{display:flex;justify-content:center;align-items:center;gap:10px;margin:20px auto;padding:10px 15px;background:var(--table-bg);border-radius:12px;box-shadow:0 2px 8px var(--table-shadow);width:fit-content}
-    #week_range{text-align:center;color:var(--accent);font-weight:600;margin:8px 0 10px}
-    table{width:100%;border-collapse:collapse;border-radius:12px;overflow:hidden;background:var(--table-bg);box-shadow:0 2px 10px var(--table-shadow)}
-    th{background:var(--th-bg);color:var(--th-text);padding:10px;font-weight:700;text-align:center}
-    td{text-align:center;padding:8px;border-bottom:1px solid #2a334b}
-    td input{border:none;background:var(--input-bg);width:44px;height:28px;border-radius:8px;text-align:center;font-weight:700;color:var(--text)}
-    td input:focus{outline:2px solid var(--accent)}
-    tr:hover td{background-color:rgba(255,255,255,.03)}
-    .highlight-green{background-color:var(--highlight)!important}
-    .progress-container{width:110px;height:6px;background:var(--progress-bg);border-radius:4px;margin:6px auto 2px;overflow:hidden}
-    .progress-bar{height:100%;width:0;border-radius:4px;transition:width .45s ease-in-out}
-    .theme-toggle{position:fixed;top:15px;right:15px;border:none;background:var(--table-bg);box-shadow:0 2px 8px var(--table-shadow);color:var(--text);padding:8px 10px;border-radius:999px;font-size:12px;font-weight:700;cursor:pointer}
-    #btnLogout{position:fixed;top:15px;right:60px;z-index:1000;display:none}
-    a{color:var(--accent);text-decoration:none}
-    a:hover{text-decoration:underline}
-  </style>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
 
   <!-- Botones fijos -->
-  <button id="btnLogout" title="Cerrar sesión">🚪</button>
-  <button id="toggleTheme" class="theme-toggle" title="Cambiar tema">🌓</button>
+  <button id="btnLogout" title="Cerrar sesion">Salir</button>
+  <button id="toggleTheme" class="theme-toggle" title="Cambiar tema">Tema</button>
 
   <!-- AUTH -->
   <div id="authScreen" class="panel" style="max-width:780px;margin:20px auto;">
-    <h1>🔐 Iniciar sesión</h1>
+    <h1>Iniciar sesion</h1>
     <div class="stack" style="margin:12px 0 6px">
       <input id="email" type="email" placeholder="tu@email" />
-      <input id="password" type="password" placeholder="contraseña" />
+      <input id="password" type="password" placeholder="contrasena" />
     </div>
     <div class="stack" style="justify-content:center;margin-top:8px">
       <button id="btnSignIn" class="btn-home">Entrar</button>
       <button id="btnSignUp">Crear cuenta</button>
     </div>
     <p class="muted" style="text-align:center;margin-top:8px">
-      <a href="#" id="linkReset">¿Olvidaste tu contraseña?</a>
+      <a href="#" id="linkReset">Olvidaste tu contrasena?</a>
     </p>
     <p id="authMsg" class="muted" style="text-align:center;margin-top:10px"></p>
   </div>
 
   <!-- Home -->
   <div id="homeScreen" class="panel" style="max-width:900px;margin:20px auto;display:none;">
-    <h1>📘 Materias Diarias</h1>
-    <p class="muted" style="text-align:center">Bienvenido. Desde aquí vas a tu tablero semanal.</p>
+    <h1>Materias Diarias</h1>
+    <p class="muted" style="text-align:center">Bienvenido. Desde aqui vas a tu tablero semanal.</p>
     <div class="stack" style="justify-content:center">
       <button id="enterButton" class="btn-home">Ir a mis materias</button>
     </div>
@@ -81,22 +45,22 @@
 
   <!-- App -->
   <div id="appContent" style="display:none;max-width:1100px;margin:0 auto;">
-    <h1>📚 Materias Diarias</h1>
+    <h1>Materias Diarias</h1>
 
     <div class="week-selector">
-      <button id="prev_week">⬅️ Semana anterior</button>
+      <button id="prev_week"><- Semana anterior</button>
       <input type="date" id="week_date">
-      <button id="next_week">Semana siguiente ➡️</button>
+      <button id="next_week">Semana siguiente -></button>
     </div>
 
     <p id="week_range"></p>
 
-    <!-- Toggle Activas / Histórico -->
+    <!-- Toggle Activas / Historico -->
     <div class="stack" style="justify-content:center;margin:0 0 18px;">
-      <button id="toggleSubjectsBtn">Ver histórico (12)</button>
+      <button id="toggleSubjectsBtn">Ver historico (12)</button>
     </div>
 
-    <h2 style="text-align:center">📈 Resumen semanal (Dom–Sáb)</h2>
+    <h2 style="text-align:center">Resumen semanal (Dom-Sab)</h2>
     <table id="weeklyTable">
       <thead>
         <tr>
@@ -104,10 +68,10 @@
           <th>Dom</th>
           <th>Lun</th>
           <th>Mar</th>
-          <th>Mié</th>
+          <th>Mie</th>
           <th>Jue</th>
           <th>Vie</th>
-          <th>Sáb</th>
+          <th>Sab</th>
           <th>Total</th>
         </tr>
       </thead>
@@ -115,427 +79,6 @@
     </table>
   </div>
 
-  <script>
-  /* ========== CONFIG SUPABASE ========== */
-  const SUPABASE_URL = "https://sfippoqwuunkpipegzra.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaXBwb3F3dXVua3BpcGVnenJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NDMyODcsImV4cCI6MjA3NzMxOTI4N30.p7iiJxu-sWNgpTRMWOSQDkf2poK4q6B1FSlt6XKv25E";
-  window.supabaseClient = window.supabaseClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  var supabase = window.supabaseClient;
-
-  /* ========== CONSTANTES APP ========== */
-  const TABLE = "daily_subjects";
-
-  // Lista histórica (12) — NO TOCAR para no “ocultar” datos antiguos
-  const SUBJECTS = [
-    "Estudio Biblia","Estudio Filosofía","Estudio Idiomas","Informática",
-    "Meditación","Escritura","Lectura","Ejercicios","Conexión con Dios",
-    "Crec. personal","Admón. Casa","Mejora laboral"
-  ];
-
-  // ✅ Lista ACTIVA (solo 6) — la UI muestra esto por defecto
-  // "Bienestar personal" es NUEVA y NO se liga a otras: se guarda tal cual.
-  const ACTIVE_SUBJECTS = [
-    "Estudio Biblia",
-    "Estudio Idiomas",
-    "Informática",
-    "Lectura",
-    "Ejercicios",
-    "Bienestar personal"
-  ];
-
-  // Toggle: por defecto solo activas
-  let showAllSubjects = false;
-
-  const WEEK1_ANCHOR = new Date(2025, 7, 3); // dom 03/08/2025
-
-  /* ========== REFS UI ========== */
-  const authScreen = document.getElementById("authScreen");
-  const homeScreen = document.getElementById("homeScreen");
-  const appContent = document.getElementById("appContent");
-  const btnSignIn = document.getElementById("btnSignIn");
-  const btnSignUp = document.getElementById("btnSignUp");
-  const btnLogout = document.getElementById("btnLogout");
-  const linkReset = document.getElementById("linkReset");
-  const authMsg = document.getElementById("authMsg");
-  const enterButton = document.getElementById("enterButton");
-  const weekRangeEl = document.getElementById("week_range");
-  const dateInput = document.getElementById("week_date");
-  const tbody = document.querySelector("#weeklyTable tbody");
-  const prevBtn = document.getElementById("prev_week");
-  const nextBtn = document.getElementById("next_week");
-  const themeBtn = document.getElementById("toggleTheme");
-  const toggleSubjectsBtn = document.getElementById("toggleSubjectsBtn");
-
-  /* ========== TEMA ========== */
-  const savedTheme = localStorage.getItem("theme");
-  const preferredTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  document.body.dataset.theme = savedTheme || preferredTheme;
-
-  function syncThemeButton(){
-    const isDark = document.body.dataset.theme === "dark";
-    themeBtn.textContent = isDark ? "Light" : "Dark";
-    themeBtn.title = isDark ? "Cambiar a tema claro" : "Cambiar a tema oscuro";
-  }
-
-  syncThemeButton();
-  themeBtn.addEventListener("click", () => {
-    document.body.dataset.theme = (document.body.dataset.theme === "dark") ? "light" : "dark";
-    localStorage.setItem("theme", document.body.dataset.theme);
-    syncThemeButton();
-  });
-
-  /* ========== HELPERS UI ========== */
-  function showAuth(){ authScreen.style.display="block"; homeScreen.style.display="none"; appContent.style.display="none"; btnLogout.style.display="none"; }
-  function showHome(){ authScreen.style.display="none"; homeScreen.style.display="block"; appContent.style.display="none"; btnLogout.style.display="inline-flex"; }
-  function showApp(){  authScreen.style.display="none"; homeScreen.style.display="none";  appContent.style.display="block"; btnLogout.style.display="inline-flex"; }
-
-  async function refreshUIBySession(){
-    const { data:{ session }, error: sessionErr } = await supabase.auth.getSession();
-    console.log("[auth.getSession]", { session, sessionErr });
-    if(session?.user) showHome(); else showAuth();
-  }
-
-  /* ========== FECHAS ========== */
-  function normalizeDate(date){ return new Date(date.getFullYear(), date.getMonth(), date.getDate()); }
-  function startOfWeek(date){ const d = normalizeDate(date); const day = d.getDay(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()-day); }
-  function formatDate(date){ return date.toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}); }
-  function toISODateLocal(d){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
-
-  /* ========== APP FLOW CENTRAL ========== */
-  function goToApp(){
-    showApp();
-    dateInput.valueAsDate = new Date();
-    loadWeeklyTableAnimated(new Date());
-  }
-
-  /* ========== AUTH ========== */
-  btnSignIn.addEventListener("click", async ()=>{
-    authMsg.textContent="";
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-    if(!email || !password){ authMsg.textContent="❌ Ingresa email y contraseña"; return; }
-
-    btnSignIn.disabled = true; btnSignIn.textContent = "Entrando…";
-    try{
-      const { data: signInData, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
-      console.log("[signInWithPassword]", { signInData, authErr });
-      if(authErr){
-        const msg = (authErr.message||"").toLowerCase();
-        authMsg.textContent =
-          msg.includes("invalid login credentials") ? "❌ Credenciales inválidas." :
-          msg.includes("email not confirmed")       ? "❌ Debes confirmar tu email." :
-          "❌ " + authErr.message;
-        return;
-      }
-      const { data:{ session } } = await supabase.auth.getSession();
-      if(session?.user){ authMsg.textContent = "✅ ¡Sesión iniciada!"; goToApp(); }
-      else { authMsg.textContent = "❌ No se pudo abrir la sesión."; }
-    }catch(e){
-      console.error("[signIn] exception:", e);
-      authMsg.textContent = "❌ Error de red o CORS. Revisa la consola.";
-    }finally{
-      btnSignIn.disabled=false; btnSignIn.textContent="Entrar";
-    }
-  });
-
-  btnSignUp.addEventListener("click", async ()=>{
-    authMsg.textContent="";
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
-    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email, password });
-    console.log("[signUp]", { signUpData, signUpErr });
-    authMsg.textContent = signUpErr ? "❌ " + signUpErr.message : "✅ Cuenta creada. Revisa tu correo si requiere confirmación.";
-  });
-
-  btnLogout.addEventListener("click", async ()=>{
-    try{ await supabase.auth.signOut(); }
-    finally{
-      if(tbody) tbody.innerHTML="";
-      showAuth();
-    }
-  });
-
-  linkReset.addEventListener("click", async (e)=>{
-    e.preventDefault();
-    const email = document.getElementById("email").value.trim();
-    if(!email){ authMsg.textContent = "❌ Escribe tu email para enviar el enlace."; return; }
-    const baseUrl = "https://aparraut.github.io/daily-subjects/";
-    const { data: resetData, error: resetErr } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: baseUrl });
-    console.log("[resetPasswordForEmail]", { resetData, resetErr });
-    authMsg.textContent = resetErr ? ("❌ " + resetErr.message) : "✅ Te enviamos un enlace para resetear la contraseña.";
-  });
-
-  // Recovery desde email
-  (async ()=>{
-    const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    if(params.get("type")==="recovery"){
-      const nueva = prompt("Ingresa tu nueva contraseña (mín. 6 caracteres):");
-      if(nueva && nueva.length>=6){
-        const { data: updData, error: updateErr } = await supabase.auth.updateUser({ password: nueva });
-        if(updateErr) alert("Error actualizando contraseña: " + updateErr.message);
-        else alert("¡Contraseña actualizada! Inicia sesión nuevamente.");
-      }
-      history.replaceState({}, document.title, window.location.pathname);
-    }
-  })();
-
-  supabase.auth.onAuthStateChange((event, session)=>{
-    console.log("[onAuthStateChange]", event, session?.user?.id);
-    if(session?.user){
-      btnLogout.style.display="inline-flex";
-      if(appContent.style.display!=="block") goToApp();
-    }else{
-      btnLogout.style.display="none";
-      showAuth();
-    }
-  });
-
-  /* ========== LÓGICA DE SEMANAS / DATOS ========== */
-  function getProgressColor(total){ if(total<15) return "#e53e3e"; if(total<20) return "#ecc94b"; return "#38a169"; }
-
-  async function calculateWeekNumber(baseDate){
-    const anchorSunday = startOfWeek(WEEK1_ANCHOR);
-    const currentSunday = startOfWeek(baseDate);
-    const diffDays = Math.floor((currentSunday - anchorSunday)/(1000*60*60*24));
-    return Math.floor(diffDays/7)+1;
-  }
-
-  async function fetchWeekData(baseDate){
-    const sunday = startOfWeek(baseDate);
-    const saturday = new Date(sunday); saturday.setDate(sunday.getDate()+6);
-
-    const { data:{ user } } = await supabase.auth.getUser();
-    if(!user){ return { records:[], sunday, saturday }; }
-
-    const { data, error: selectErr } = await supabase
-      .from(TABLE)
-      .select("*")
-      .eq("user_id", user.id)
-      .gte("study_date", toISODateLocal(sunday))
-      .lte("study_date", toISODateLocal(saturday));
-
-    if(selectErr){ console.error("Supabase select error:", selectErr); return { records:[], sunday, saturday }; }
-    return { records: data||[], sunday, saturday };
-  }
-
-  async function loadWeeklyTable(baseDate){
-    const { records, sunday, saturday } = await fetchWeekData(baseDate);
-    const weekNumber = await calculateWeekNumber(baseDate);
-    weekRangeEl.textContent = `Semana ${weekNumber}: ${formatDate(sunday)} – ${formatDate(saturday)}`;
-
-    // ✅ Materias visibles según toggle
-    const VISIBLE_SUBJECTS = showAllSubjects ? SUBJECTS : ACTIVE_SUBJECTS;
-
-    // ✅ Evita errores si la materia activa aún no tiene registros
-    const allSubjectsForGrouping = new Set([...SUBJECTS, ...ACTIVE_SUBJECTS]);
-    const grouped = {};
-    allSubjectsForGrouping.forEach(sub => grouped[sub] = Array(7).fill(""));
-
-    // Mapear registros
-    records.forEach(r=>{
-      const d = normalizeDate(new Date(r.study_date + "T00:00:00"));
-      const dayIndex = d.getDay();
-      if(!grouped[r.subject_name]) grouped[r.subject_name]=Array(7).fill("");
-      grouped[r.subject_name][dayIndex] = r.score ?? "";
-    });
-
-    tbody.innerHTML = "";
-    VISIBLE_SUBJECTS.forEach(sub=>{
-      const row = document.createElement("tr");
-      let total = 0;
-
-      const subjectCell = document.createElement("td");
-      const subjectBold = document.createElement("b");
-      subjectBold.textContent = sub;
-      subjectCell.appendChild(subjectBold);
-      row.appendChild(subjectCell);
-
-      for(let i=0;i<7;i++){
-        const currentDate = new Date(sunday); currentDate.setDate(sunday.getDate()+i);
-        const isoDate = toISODateLocal(currentDate);
-        const value = (grouped[sub] ? grouped[sub][i] : "") || "";
-        if(value) total += Number(value);
-
-        const dayCell = document.createElement("td");
-        const input = document.createElement("input");
-        input.type = "number";
-        input.min = "1";
-        input.max = "5";
-        input.step = "1";
-        input.placeholder = "-";
-        input.dataset.subject = sub;
-        input.dataset.date = isoDate;
-        input.value = value;
-        dayCell.appendChild(input);
-        row.appendChild(dayCell);
-      }
-
-      const progress = Math.min((total/35)*100,100).toFixed(1);
-      const color = getProgressColor(total);
-      const totalCell = document.createElement("td");
-      totalCell.className = "total-cell";
-      totalCell.style.fontWeight = "800";
-      totalCell.style.textAlign = "center";
-
-      const totalValue = document.createElement("span");
-      totalValue.className = "total-value";
-      totalValue.textContent = total || "";
-      totalCell.appendChild(totalValue);
-
-      const progressContainer = document.createElement("div");
-      progressContainer.className = "progress-container";
-      const progressBar = document.createElement("div");
-      progressBar.className = "progress-bar";
-      progressBar.style.width = `${progress}%`;
-      progressBar.style.background = color;
-      progressContainer.appendChild(progressBar);
-      totalCell.appendChild(progressContainer);
-
-      row.appendChild(totalCell);
-      if(total>=20) row.classList.add("highlight-green");
-      tbody.appendChild(row);
-    });
-
-    document.querySelectorAll("input[data-subject]").forEach(input=>{
-      input.addEventListener("input", e => {
-        isValidScoreInput(e.target);
-        updateRowTotal(e.target.closest("tr"));
-      });
-      input.addEventListener("blur", onBlurSave);
-    });
-  }
-
-  function updateRowTotal(row){
-    const inputs = row.querySelectorAll("input[type='number']");
-    let total = 0; inputs.forEach(i=>{ if(i.value) total += Number(i.value); });
-    const totalCell = row.querySelector(".total-cell");
-    const totalValue = totalCell.querySelector(".total-value");
-    totalValue.textContent = total || "";
-    const bar = row.querySelector(".progress-bar");
-    const progress = Math.min((total/35)*100,100);
-    const color = getProgressColor(total);
-    if(bar){ bar.style.width = `${progress}%`; bar.style.background = color; }
-    if(total>=20) row.classList.add("highlight-green"); else row.classList.remove("highlight-green");
-  }
-
-  function isValidScoreInput(input){
-    if(!input.value){
-      input.setCustomValidity("");
-      return true;
-    }
-    const score = Number(input.value);
-    const isValid = Number.isInteger(score) && score >= 1 && score <= 5;
-    input.setCustomValidity(isValid ? "" : "Ingresa un entero de 1 a 5.");
-    return isValid;
-  }
-
-  function getCustomWeekNumber(dateStr){
-    const d = new Date(dateStr + "T00:00:00");
-    const anchorSunday = startOfWeek(WEEK1_ANCHOR);
-    const currentSunday = startOfWeek(d);
-    const diffDays = Math.floor((currentSunday - anchorSunday)/(1000*60*60*24));
-    return Math.floor(diffDays/7)+1;
-  }
-
-  async function onBlurSave(e) {
-    const input = e.target;
-    if(!isValidScoreInput(input)){
-      input.reportValidity();
-      return;
-    }
-    const subject = input.dataset.subject;
-    const date = input.dataset.date;
-    const rawScore = input.value.trim();
-    const score = rawScore === "" ? null : Number(rawScore);
-
-    input.disabled = true;
-    try {
-      const { data: { user }, error: getUserErr } = await supabase.auth.getUser();
-      if (getUserErr) {
-        console.error("[getUser] error:", getUserErr);
-        alert("❌ Error de sesión. Revisa consola.");
-        return;
-      }
-      if (!user?.id) {
-        alert("Inicia sesión para guardar.");
-        return;
-      }
-
-      if (score === null) {
-        const { error: deleteErr } = await supabase
-          .from(TABLE)
-          .delete()
-          .eq("user_id", user.id)
-          .eq("subject_name", subject)
-          .eq("study_date", date);
-
-        if (deleteErr) {
-          console.error("DELETE error:", deleteErr);
-          alert("Error: No se pudo borrar: " + (deleteErr.message || "revisa consola"));
-        }
-        return;
-      }
-
-      if (!Number.isInteger(score) || score < 1 || score > 5) {
-        alert("Error: El valor debe ser un entero entre 1 y 5.");
-        input.value = "";
-        updateRowTotal(input.closest("tr"));
-        return;
-      }
-
-      const payload = {
-        user_id: user.id,
-        subject_name: subject,
-        study_date: date,
-        score,
-        custom_week_number: getCustomWeekNumber(date)
-      };
-
-      const { error: upsertErr } = await supabase
-        .from(TABLE)
-        .upsert(payload, { onConflict: "user_id,subject_name,study_date" });
-
-      if (upsertErr) {
-        console.error("UPSERT error:", upsertErr);
-        alert("❌ No se pudo guardar: " + (upsertErr.message || "revisa consola"));
-        return;
-      }
-    } finally {
-      input.disabled = false;
-    }
-  }
-
-  async function loadWeeklyTableAnimated(baseDate){
-    const table = document.querySelector("#weeklyTable");
-    table.style.opacity = 0;
-    await loadWeeklyTable(baseDate);
-    setTimeout(()=>{ table.style.transition="opacity .35s"; table.style.opacity=1; }, 30);
-  }
-
-  /* ========== NAVEGACIÓN ========== */
-  prevBtn.addEventListener("click", ()=>{
-    const current = new Date(dateInput.value); current.setDate(current.getDate()-7);
-    dateInput.valueAsDate = current; loadWeeklyTableAnimated(current);
-  });
-  nextBtn.addEventListener("click", ()=>{
-    const current = new Date(dateInput.value); current.setDate(current.getDate()+7);
-    dateInput.valueAsDate = current; loadWeeklyTableAnimated(current);
-  });
-  dateInput.addEventListener("change", e => loadWeeklyTableAnimated(new Date(e.target.value)));
-  enterButton.addEventListener("click", ()=>{ goToApp(); });
-
-  // Toggle: solo activas / histórico
-  toggleSubjectsBtn.addEventListener("click", ()=>{
-    showAllSubjects = !showAllSubjects;
-    toggleSubjectsBtn.textContent = showAllSubjects ? "Ver solo activas (6)" : "Ver histórico (12)";
-    loadWeeklyTableAnimated(new Date(dateInput.value));
-  });
-
-  /* ========== INIT ========== */
-  document.addEventListener("DOMContentLoaded", async ()=>{
-    await refreshUIBySession();
-  });
-</script>
-
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
