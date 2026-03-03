@@ -14,11 +14,21 @@ export function initAuth({
   closeRecoveryModal,
   showNotice
 }){
+  function hasValidEmail(){
+    const ok = refs.emailInput.checkValidity();
+    if(!ok){
+      refs.authMsg.textContent = "Error: Ingresa un email valido.";
+      refs.emailInput.reportValidity();
+    }
+    return ok;
+  }
+
   async function handleSignIn(){
     refs.authMsg.textContent = "";
     const email = refs.emailInput.value.trim();
     const password = refs.passwordInput.value;
     if(!email || !password){ refs.authMsg.textContent = "Error: Ingresa email y contrasena"; return; }
+    if(!hasValidEmail()) return;
 
     refs.btnSignIn.disabled = true;
     refs.btnSignIn.textContent = "Entrando...";
@@ -54,9 +64,18 @@ export function initAuth({
     refs.authMsg.textContent = "";
     const email = refs.emailInput.value.trim();
     const password = refs.passwordInput.value;
-    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email, password });
-    console.log("[signUp]", { signUpData, signUpErr });
-    refs.authMsg.textContent = signUpErr ? "Error: " + signUpErr.message : "Cuenta creada. Revisa tu correo si requiere confirmacion.";
+    if(!email || !password){ refs.authMsg.textContent = "Error: Ingresa email y contrasena"; return; }
+    if(!hasValidEmail()) return;
+    if(password.length < 6){ refs.authMsg.textContent = "Error: La contrasena debe tener al menos 6 caracteres."; return; }
+
+    refs.btnSignUp.disabled = true;
+    try{
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email, password });
+      console.log("[signUp]", { signUpData, signUpErr });
+      refs.authMsg.textContent = signUpErr ? "Error: " + signUpErr.message : "Cuenta creada. Revisa tu correo si requiere confirmacion.";
+    }finally{
+      refs.btnSignUp.disabled = false;
+    }
   });
 
   refs.btnLogout.addEventListener("click", async ()=>{
@@ -71,10 +90,18 @@ export function initAuth({
     e.preventDefault();
     const email = refs.emailInput.value.trim();
     if(!email){ refs.authMsg.textContent = "Error: Escribe tu email para enviar el enlace."; return; }
+    if(!hasValidEmail()) return;
     const baseUrl = "https://aparraut.github.io/daily-subjects/";
-    const { data: resetData, error: resetErr } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: baseUrl });
-    console.log("[resetPasswordForEmail]", { resetData, resetErr });
-    refs.authMsg.textContent = resetErr ? ("Error: " + resetErr.message) : "Te enviamos un enlace para resetear la contrasena.";
+    refs.linkReset.classList.add("is-disabled");
+    refs.linkReset.setAttribute("aria-disabled", "true");
+    try{
+      const { data: resetData, error: resetErr } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: baseUrl });
+      console.log("[resetPasswordForEmail]", { resetData, resetErr });
+      refs.authMsg.textContent = resetErr ? ("Error: " + resetErr.message) : "Te enviamos un enlace para resetear la contrasena.";
+    }finally{
+      refs.linkReset.classList.remove("is-disabled");
+      refs.linkReset.removeAttribute("aria-disabled");
+    }
   });
 
   (async ()=>{

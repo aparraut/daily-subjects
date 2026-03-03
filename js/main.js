@@ -36,6 +36,7 @@ initTheme(refs.themeBtn);
 initNotice(refs);
 
 let showAllSubjects = false;
+let latestLoadId = 0;
 
 function goToApp(){
   showApp(refs);
@@ -43,8 +44,21 @@ function goToApp(){
   loadWeeklyTableAnimated(new Date());
 }
 
-async function loadWeeklyTable(baseDate){
+function setWeekLoading(isLoading){
+  refs.prevBtn.disabled = isLoading;
+  refs.nextBtn.disabled = isLoading;
+  refs.dateInput.disabled = isLoading;
+  refs.toggleSubjectsBtn.disabled = isLoading;
+}
+
+function markInputState(input, state){
+  input.classList.remove("is-saving", "is-save-error", "is-save-ok");
+  if(state) input.classList.add(state);
+}
+
+async function loadWeeklyTable(baseDate, loadId){
   const { records, sunday, saturday } = await fetchWeekData(supabase, baseDate);
+  if(loadId !== latestLoadId) return;
   const weekNumber = calculateWeekNumber(baseDate);
   refs.weekRangeEl.textContent = `Semana ${weekNumber}: ${formatDate(sunday)} - ${formatDate(saturday)}`;
 
@@ -116,6 +130,7 @@ async function loadWeeklyTable(baseDate){
     if(total>=20) row.classList.add("highlight-green");
     refs.tbody.appendChild(row);
   });
+  if(loadId !== latestLoadId) return;
 
   document.querySelectorAll("input[data-subject]").forEach(input=>{
     input.addEventListener("input", e => {
@@ -130,6 +145,7 @@ async function onBlurSave(e) {
   const input = e.target;
   if(!isValidScoreInput(input)){
     input.reportValidity();
+    markInputState(input, "is-save-error");
     return;
   }
 
@@ -138,16 +154,19 @@ async function onBlurSave(e) {
   const rawScore = input.value.trim();
   const score = rawScore === "" ? null : Number(rawScore);
 
+  markInputState(input, "is-saving");
   input.disabled = true;
   try {
     const { data: { user }, error: getUserErr } = await supabase.auth.getUser();
     if (getUserErr) {
       console.error("[getUser] error:", getUserErr);
       showNotice(refs, "Error: Sesion invalida. Revisa consola.", "error");
+      markInputState(input, "is-save-error");
       return;
     }
     if (!user?.id) {
       showNotice(refs, "Inicia sesion para guardar.", "error");
+      markInputState(input, "is-save-error");
       return;
     }
 
@@ -156,7 +175,10 @@ async function onBlurSave(e) {
       if (deleteErr) {
         console.error("DELETE error:", deleteErr);
         showNotice(refs, "Error: No se pudo borrar: " + (deleteErr.message || "revisa consola"), "error");
+        markInputState(input, "is-save-error");
+        return;
       }
+      markInputState(input, "is-save-ok");
       return;
     }
 
@@ -164,6 +186,7 @@ async function onBlurSave(e) {
       showNotice(refs, "Error: El valor debe ser un entero entre 1 y 5.", "error");
       input.value = "";
       updateRowTotal(input.closest("tr"), getProgressColor);
+      markInputState(input, "is-save-error");
       return;
     }
 
@@ -179,29 +202,49 @@ async function onBlurSave(e) {
     if (upsertErr) {
       console.error("UPSERT error:", upsertErr);
       showNotice(refs, "Error: No se pudo guardar: " + (upsertErr.message || "revisa consola"), "error");
+      markInputState(input, "is-save-error");
       return;
     }
+    markInputState(input, "is-save-ok");
   } finally {
     input.disabled = false;
+    setTimeout(()=>{
+      if(input.isConnected) markInputState(input, null);
+    }, 1200);
   }
 }
 
 async function loadWeeklyTableAnimated(baseDate){
   const table = document.querySelector("#weeklyTable");
-  table.style.opacity = 0;
-  await loadWeeklyTable(baseDate);
-  setTimeout(()=>{ table.style.transition="opacity .35s"; table.style.opacity=1; }, 30);
+  const loadId = ++latestLoadId;
+  setWeekLoading(true);
+  table.style.opacity = 0.45;
+  try{
+    await loadWeeklyTable(baseDate, loadId);
+    if(loadId !== latestLoadId) return;
+    setTimeout(()=>{
+      table.style.transition = "opacity .35s";
+      table.style.opacity = 1;
+    }, 30);
+  }catch(err){
+    if(loadId === latestLoadId){
+      console.error("[loadWeeklyTableAnimated] error", err);
+      showNotice(refs, "Error cargando la semana. Intenta de nuevo.", "error");
+    }
+  }finally{
+    if(loadId === latestLoadId) setWeekLoading(false);
+  }
 }
 
 refs.prevBtn.addEventListener("click", ()=>{
-  const current = new Date(refs.dateInput.value);
+  const current = refs.dateInput.value ? new Date(refs.dateInput.value) : new Date();
   current.setDate(current.getDate()-7);
   refs.dateInput.valueAsDate = current;
   loadWeeklyTableAnimated(current);
 });
 
 refs.nextBtn.addEventListener("click", ()=>{
-  const current = new Date(refs.dateInput.value);
+  const current = refs.dateInput.value ? new Date(refs.dateInput.value) : new Date();
   current.setDate(current.getDate()+7);
   refs.dateInput.valueAsDate = current;
   loadWeeklyTableAnimated(current);
@@ -212,7 +255,8 @@ refs.dateInput.addEventListener("change", e => loadWeeklyTableAnimated(new Date(
 refs.toggleSubjectsBtn.addEventListener("click", ()=>{
   showAllSubjects = !showAllSubjects;
   refs.toggleSubjectsBtn.textContent = showAllSubjects ? "Ver solo activas (6)" : "Ver historico (12)";
-  loadWeeklyTableAnimated(new Date(refs.dateInput.value));
+  const selectedDate = refs.dateInput.value ? new Date(refs.dateInput.value) : new Date();
+  loadWeeklyTableAnimated(selectedDate);
 });
 
 initAuth({

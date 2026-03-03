@@ -36,6 +36,9 @@ th{background:var(--th-bg);color:var(--th-text);padding:10px;font-weight:700;tex
 td{text-align:center;padding:8px;border-bottom:1px solid #2a334b}
 td input{border:none;background:var(--input-bg);width:44px;height:28px;border-radius:8px;text-align:center;font-weight:700;color:var(--text)}
 td input:focus{outline:2px solid var(--accent)}
+td input.is-saving{outline:2px solid #d69e2e}
+td input.is-save-ok{outline:2px solid #2f8f5e}
+td input.is-save-error{outline:2px solid #b63a3a}
 tr:hover td{background-color:rgba(255,255,255,.03)}
 .highlight-green{background-color:var(--highlight)!important}
 .progress-container{width:110px;height:6px;background:var(--progress-bg);border-radius:4px;margin:6px auto 2px;overflow:hidden}
@@ -44,6 +47,7 @@ tr:hover td{background-color:rgba(255,255,255,.03)}
 #btnLogout{position:fixed;top:15px;right:60px;z-index:1000;display:none}
 a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
+a.is-disabled{opacity:.55;pointer-events:none;text-decoration:none}
 
 .app-notice{
   position:fixed;
