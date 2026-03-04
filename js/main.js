@@ -33,10 +33,9 @@ import {
   closeRecoveryModal
 } from "./ui.js";
 import { initAuth, refreshUIBySession } from "./auth.js";
+import { APP_CONFIG } from "./config.js";
 
-const SUPABASE_URL = "https://sfippoqwuunkpipegzra.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaXBwb3F3dXVua3BpcGVnenJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NDMyODcsImV4cCI6MjA3NzMxOTI4N30.p7iiJxu-sWNgpTRMWOSQDkf2poK4q6B1FSlt6XKv25E";
-window.supabaseClient = window.supabaseClient || window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+window.supabaseClient = window.supabaseClient || window.supabase.createClient(APP_CONFIG.supabaseUrl, APP_CONFIG.supabaseAnonKey);
 const supabase = window.supabaseClient;
 
 const refs = getUIRefs();
@@ -52,6 +51,7 @@ let currentActivePlan = null;
 let trendChartInstance = null;
 let weekdayChartInstance = null;
 let subjectChartInstance = null;
+let latestMetricsLoadId = 0;
 
 function escapeHtml(text){
   return String(text || "")
@@ -203,142 +203,151 @@ function createOrUpdateChart(instance, canvas, config){
 }
 
 async function refreshMetrics(){
+  const metricsLoadId = ++latestMetricsLoadId;
   if(!refs.metricsPeriod || !refs.metricsSubject) return;
-  const { data: { user }, error: userErr } = await supabase.auth.getUser();
-  if(userErr || !user?.id) return;
+  refs.metricsRefreshBtn.disabled = true;
+  try{
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if(userErr || !user?.id) return;
 
-  const period = refs.metricsPeriod.value || "month";
-  const { start, end } = periodRange(currentWeekDate, period, refs.metricsFrom.value, refs.metricsTo.value);
-  const startIso = toISODateLocal(start);
-  const endIso = toISODateLocal(end);
+    const period = refs.metricsPeriod.value || "month";
+    const { start, end } = periodRange(currentWeekDate, period, refs.metricsFrom.value, refs.metricsTo.value);
+    const startIso = toISODateLocal(start);
+    const endIso = toISODateLocal(end);
 
-  const { data, error } = await fetchScoresInRange(supabase, user.id, startIso, endIso);
-  if(error){
-    console.error("[fetchScoresInRange]", error);
-    showNotice(refs, "No se pudieron cargar metricas.", "error");
-    return;
+    const { data, error } = await fetchScoresInRange(supabase, user.id, startIso, endIso);
+    if(metricsLoadId !== latestMetricsLoadId) return;
+    if(error){
+      console.error("[fetchScoresInRange]", error);
+      showNotice(refs, "No se pudieron cargar metricas.", "error");
+      return;
+    }
+
+    const selectedSubject = refs.metricsSubject.value;
+    const records = (data || []).filter(r => selectedSubject === "__all__" ? true : r.subject_name === selectedSubject);
+    const days = eachDayBetween(start, end);
+
+    const dayMap = {};
+    days.forEach(d => { dayMap[toISODateLocal(d)] = []; });
+    records.forEach(r => {
+      if(dayMap[r.study_date]){
+        dayMap[r.study_date].push(Number(r.score));
+      }
+    });
+
+    const avgScore = records.length ? (records.reduce((acc, r) => acc + Number(r.score), 0) / records.length) : NaN;
+    const recordedDays = Object.values(dayMap).filter(scores => scores.length > 0).length;
+    const consistency = days.length ? (recordedDays / days.length) * 100 : NaN;
+
+    const byWeekday = Array.from({ length: 7 }, () => []);
+    records.forEach(r => {
+      const idx = new Date(r.study_date + "T00:00:00").getDay();
+      byWeekday[idx].push(Number(r.score));
+    });
+    const weekdayAvg = byWeekday.map(items => items.length ? items.reduce((a, b) => a + b, 0) / items.length : 0);
+    const bestDayIndex = weekdayAvg.some(v => v > 0) ? weekdayAvg.indexOf(Math.max(...weekdayAvg)) : -1;
+
+    const bySubject = {};
+    records.forEach(r => {
+      bySubject[r.subject_name] = bySubject[r.subject_name] || [];
+      bySubject[r.subject_name].push(Number(r.score));
+    });
+    const subjectPairs = Object.entries(bySubject).map(([name, vals]) => ({
+      name,
+      avg: vals.reduce((a, b) => a + b, 0) / vals.length
+    })).sort((a, b) => b.avg - a.avg);
+
+    const bestSubject = subjectPairs.length ? subjectPairs[0].name : "-";
+    setKpis({
+      avgScore,
+      consistency,
+      bestDay: bestDayIndex >= 0 ? dayNameEs(bestDayIndex) : "-",
+      bestSubject
+    });
+
+    const trendLabels = days.map(formatMetricDate);
+    const trendValues = days.map(d => {
+      const key = toISODateLocal(d);
+      const items = dayMap[key] || [];
+      return items.length ? (items.reduce((a, b) => a + b, 0) / items.length) : null;
+    });
+
+    const tickColor = getComputedStyle(document.body).getPropertyValue("--muted").trim() || "#6f6252";
+    const gridColor = getComputedStyle(document.body).getPropertyValue("--line").trim() || "#cdbda7";
+    const accent = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#a64620";
+    const success = getComputedStyle(document.body).getPropertyValue("--success").trim() || "#2d6a3b";
+
+    trendChartInstance = createOrUpdateChart(trendChartInstance, refs.trendChart, {
+      type: "line",
+      data: {
+        labels: trendLabels,
+        datasets: [{
+          label: "Promedio diario",
+          data: trendValues,
+          borderColor: accent,
+          backgroundColor: accent,
+          spanGaps: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { min: 0, max: 5, ticks: { color: tickColor }, grid: { color: gridColor } },
+          x: { ticks: { color: tickColor, maxRotation: 0 }, grid: { color: gridColor } }
+        },
+        plugins: { legend: { labels: { color: tickColor } } }
+      }
+    });
+
+    weekdayChartInstance = createOrUpdateChart(weekdayChartInstance, refs.weekdayChart, {
+      type: "bar",
+      data: {
+        labels: ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"],
+        datasets: [{
+          label: "Promedio",
+          data: weekdayAvg.map(v => v || 0),
+          backgroundColor: success
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: { min: 0, max: 5, ticks: { color: tickColor }, grid: { color: gridColor } },
+          x: { ticks: { color: tickColor }, grid: { color: gridColor } }
+        },
+        plugins: { legend: { labels: { color: tickColor } } }
+      }
+    });
+
+    subjectChartInstance = createOrUpdateChart(subjectChartInstance, refs.subjectChart, {
+      type: "bar",
+      data: {
+        labels: subjectPairs.map(p => p.name),
+        datasets: [{
+          label: "Promedio por materia",
+          data: subjectPairs.map(p => p.avg),
+          backgroundColor: accent
+        }]
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { min: 0, max: 5, ticks: { color: tickColor }, grid: { color: gridColor } },
+          y: { ticks: { color: tickColor }, grid: { color: gridColor } }
+        },
+        plugins: { legend: { labels: { color: tickColor } } }
+      }
+    });
+  } finally {
+    if(metricsLoadId === latestMetricsLoadId){
+      refs.metricsRefreshBtn.disabled = false;
+    }
   }
-
-  const selectedSubject = refs.metricsSubject.value;
-  const records = (data || []).filter(r => selectedSubject === "__all__" ? true : r.subject_name === selectedSubject);
-  const days = eachDayBetween(start, end);
-
-  const dayMap = {};
-  days.forEach(d => { dayMap[toISODateLocal(d)] = []; });
-  records.forEach(r => {
-    if(dayMap[r.study_date]){
-      dayMap[r.study_date].push(Number(r.score));
-    }
-  });
-
-  const avgScore = records.length ? (records.reduce((acc, r) => acc + Number(r.score), 0) / records.length) : NaN;
-  const recordedDays = Object.values(dayMap).filter(scores => scores.length > 0).length;
-  const consistency = days.length ? (recordedDays / days.length) * 100 : NaN;
-
-  const byWeekday = Array.from({ length: 7 }, () => []);
-  records.forEach(r => {
-    const idx = new Date(r.study_date + "T00:00:00").getDay();
-    byWeekday[idx].push(Number(r.score));
-  });
-  const weekdayAvg = byWeekday.map(items => items.length ? items.reduce((a, b) => a + b, 0) / items.length : 0);
-  const bestDayIndex = weekdayAvg.some(v => v > 0) ? weekdayAvg.indexOf(Math.max(...weekdayAvg)) : -1;
-
-  const bySubject = {};
-  records.forEach(r => {
-    bySubject[r.subject_name] = bySubject[r.subject_name] || [];
-    bySubject[r.subject_name].push(Number(r.score));
-  });
-  const subjectPairs = Object.entries(bySubject).map(([name, vals]) => ({
-    name,
-    avg: vals.reduce((a, b) => a + b, 0) / vals.length
-  })).sort((a, b) => b.avg - a.avg);
-
-  const bestSubject = subjectPairs.length ? subjectPairs[0].name : "-";
-  setKpis({
-    avgScore,
-    consistency,
-    bestDay: bestDayIndex >= 0 ? dayNameEs(bestDayIndex) : "-",
-    bestSubject
-  });
-
-  const trendLabels = days.map(formatMetricDate);
-  const trendValues = days.map(d => {
-    const key = toISODateLocal(d);
-    const items = dayMap[key] || [];
-    return items.length ? (items.reduce((a, b) => a + b, 0) / items.length) : null;
-  });
-
-  const tickColor = getComputedStyle(document.body).getPropertyValue("--muted").trim() || "#6f6252";
-  const gridColor = getComputedStyle(document.body).getPropertyValue("--line").trim() || "#cdbda7";
-  const accent = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#a64620";
-  const success = getComputedStyle(document.body).getPropertyValue("--success").trim() || "#2d6a3b";
-
-  trendChartInstance = createOrUpdateChart(trendChartInstance, refs.trendChart, {
-    type: "line",
-    data: {
-      labels: trendLabels,
-      datasets: [{
-        label: "Promedio diario",
-        data: trendValues,
-        borderColor: accent,
-        backgroundColor: accent,
-        spanGaps: true,
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { min: 0, max: 5, ticks: { color: tickColor }, grid: { color: gridColor } },
-        x: { ticks: { color: tickColor, maxRotation: 0 }, grid: { color: gridColor } }
-      },
-      plugins: { legend: { labels: { color: tickColor } } }
-    }
-  });
-
-  weekdayChartInstance = createOrUpdateChart(weekdayChartInstance, refs.weekdayChart, {
-    type: "bar",
-    data: {
-      labels: ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"],
-      datasets: [{
-        label: "Promedio",
-        data: weekdayAvg.map(v => v || 0),
-        backgroundColor: success
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: { min: 0, max: 5, ticks: { color: tickColor }, grid: { color: gridColor } },
-        x: { ticks: { color: tickColor }, grid: { color: gridColor } }
-      },
-      plugins: { legend: { labels: { color: tickColor } } }
-    }
-  });
-
-  subjectChartInstance = createOrUpdateChart(subjectChartInstance, refs.subjectChart, {
-    type: "bar",
-    data: {
-      labels: subjectPairs.map(p => p.name),
-      datasets: [{
-        label: "Promedio por materia",
-        data: subjectPairs.map(p => p.avg),
-        backgroundColor: accent
-      }]
-    },
-    options: {
-      indexAxis: "y",
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: { min: 0, max: 5, ticks: { color: tickColor }, grid: { color: gridColor } },
-        y: { ticks: { color: tickColor }, grid: { color: gridColor } }
-      },
-      plugins: { legend: { labels: { color: tickColor } } }
-    }
-  });
 }
 
 async function refreshUserConfigData(){

@@ -1,6 +1,8 @@
+import { debugLog, getResetRedirectUrl } from "./config.js";
+
 export async function refreshUIBySession(supabase, refs, showAuth, showHome){
   const { data:{ session }, error: sessionErr } = await supabase.auth.getSession();
-  console.log("[auth.getSession]", { session, sessionErr });
+  debugLog("[auth.getSession]", { session, sessionErr });
   if(session?.user) showHome(refs); else showAuth(refs);
 }
 
@@ -34,7 +36,7 @@ export function initAuth({
     refs.btnSignIn.textContent = "Entrando...";
     try{
       const { data: signInData, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
-      console.log("[signInWithPassword]", { signInData, authErr });
+      debugLog("[signInWithPassword]", { signInData, authErr });
       if(authErr){
         const msg = (authErr.message||"").toLowerCase();
         refs.authMsg.textContent =
@@ -71,7 +73,7 @@ export function initAuth({
     refs.btnSignUp.disabled = true;
     try{
       const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email, password });
-      console.log("[signUp]", { signUpData, signUpErr });
+      debugLog("[signUp]", { signUpData, signUpErr });
       refs.authMsg.textContent = signUpErr ? "Error: " + signUpErr.message : "Cuenta creada. Revisa tu correo si requiere confirmacion.";
     }finally{
       refs.btnSignUp.disabled = false;
@@ -91,12 +93,12 @@ export function initAuth({
     const email = refs.emailInput.value.trim();
     if(!email){ refs.authMsg.textContent = "Error: Escribe tu email para enviar el enlace."; return; }
     if(!hasValidEmail()) return;
-    const baseUrl = "https://aparraut.github.io/daily-subjects/";
+    const baseUrl = getResetRedirectUrl();
     refs.linkReset.classList.add("is-disabled");
     refs.linkReset.setAttribute("aria-disabled", "true");
     try{
       const { data: resetData, error: resetErr } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: baseUrl });
-      console.log("[resetPasswordForEmail]", { resetData, resetErr });
+      debugLog("[resetPasswordForEmail]", { resetData, resetErr });
       refs.authMsg.textContent = resetErr ? ("Error: " + resetErr.message) : "Te enviamos un enlace para resetear la contrasena.";
     }finally{
       refs.linkReset.classList.remove("is-disabled");
@@ -142,7 +144,7 @@ export function initAuth({
   });
 
   supabase.auth.onAuthStateChange((event, session)=>{
-    console.log("[onAuthStateChange]", event, session?.user?.id);
+    debugLog("[onAuthStateChange]", event, session?.user?.id);
     if(session?.user){
       refs.btnLogout.style.display = "inline-flex";
       if(!isAppVisible()) goToApp();
