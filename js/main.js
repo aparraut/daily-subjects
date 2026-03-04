@@ -5,6 +5,7 @@ import {
   calculateWeekNumber,
   getCustomWeekNumber,
   fetchWeekData,
+  fetchScoresInRange,
   normalizeDate,
   normalizeSubjectName,
   ensureDefaultSubjects,
@@ -48,6 +49,9 @@ let currentWeekDate = normalizeDate(new Date());
 let subjects = [];
 let plans = [];
 let currentActivePlan = null;
+let trendChartInstance = null;
+let weekdayChartInstance = null;
+let subjectChartInstance = null;
 
 function escapeHtml(text){
   return String(text || "")
@@ -56,6 +60,54 @@ function escapeHtml(text){
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function startOfWeek(date){
+  const d = normalizeDate(date);
+  const day = d.getDay();
+  d.setDate(d.getDate() - day);
+  return d;
+}
+
+function periodRange(anchorDate, period, customFrom, customTo){
+  const base = normalizeDate(anchorDate);
+  if(period === "week"){
+    const start = startOfWeek(base);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { start, end };
+  }
+  if(period === "month"){
+    const start = new Date(base.getFullYear(), base.getMonth(), 1);
+    const end = new Date(base.getFullYear(), base.getMonth() + 1, 0);
+    return { start, end };
+  }
+  if(period === "year"){
+    const start = new Date(base.getFullYear(), 0, 1);
+    const end = new Date(base.getFullYear(), 11, 31);
+    return { start, end };
+  }
+  const start = customFrom ? new Date(customFrom + "T00:00:00") : new Date(base.getFullYear(), base.getMonth(), 1);
+  const end = customTo ? new Date(customTo + "T00:00:00") : new Date(base.getFullYear(), base.getMonth() + 1, 0);
+  return { start: normalizeDate(start), end: normalizeDate(end) };
+}
+
+function eachDayBetween(start, end){
+  const out = [];
+  const cursor = new Date(start);
+  while(cursor <= end){
+    out.push(new Date(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return out;
+}
+
+function dayNameEs(dayIndex){
+  return ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"][dayIndex] || "-";
+}
+
+function formatMetricDate(d){
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function setWeekLoading(isLoading){
@@ -119,6 +171,166 @@ function updateActivePlanLabel(baseDate){
   }
 }
 
+function refreshMetricsSubjectOptions(){
+  const current = refs.metricsSubject.value || "__all__";
+  const names = getAllSubjectNames().sort((a, b) => a.localeCompare(b, "es"));
+  refs.metricsSubject.innerHTML = `<option value="__all__">Todas las materias</option>` +
+    names.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
+  refs.metricsSubject.value = names.includes(current) || current === "__all__" ? current : "__all__";
+}
+
+function setKpis({ avgScore, consistency, bestDay, bestSubject }){
+  refs.kpiAvgScore.textContent = Number.isFinite(avgScore) ? avgScore.toFixed(2) : "-";
+  refs.kpiConsistency.textContent = Number.isFinite(consistency) ? `${consistency.toFixed(1)}%` : "-";
+  refs.kpiBestDay.textContent = bestDay || "-";
+  refs.kpiBestSubject.textContent = bestSubject || "-";
+}
+
+function createOrUpdateChart(instance, canvas, config){
+  if(typeof window.Chart !== "function") return null;
+  if(instance) instance.destroy();
+  return new window.Chart(canvas, config);
+}
+
+async function refreshMetrics(){
+  if(!refs.metricsPeriod || !refs.metricsSubject) return;
+  const { data: { user }, error: userErr } = await supabase.auth.getUser();
+  if(userErr || !user?.id) return;
+
+  const period = refs.metricsPeriod.value || "month";
+  const { start, end } = periodRange(currentWeekDate, period, refs.metricsFrom.value, refs.metricsTo.value);
+  const startIso = toISODateLocal(start);
+  const endIso = toISODateLocal(end);
+
+  const { data, error } = await fetchScoresInRange(supabase, user.id, startIso, endIso);
+  if(error){
+    console.error("[fetchScoresInRange]", error);
+    showNotice(refs, "No se pudieron cargar metricas.", "error");
+    return;
+  }
+
+  const selectedSubject = refs.metricsSubject.value;
+  const records = (data || []).filter(r => selectedSubject === "__all__" ? true : r.subject_name === selectedSubject);
+  const days = eachDayBetween(start, end);
+
+  const dayMap = {};
+  days.forEach(d => { dayMap[toISODateLocal(d)] = []; });
+  records.forEach(r => {
+    if(dayMap[r.study_date]){
+      dayMap[r.study_date].push(Number(r.score));
+    }
+  });
+
+  const avgScore = records.length ? (records.reduce((acc, r) => acc + Number(r.score), 0) / records.length) : NaN;
+  const recordedDays = Object.values(dayMap).filter(scores => scores.length > 0).length;
+  const consistency = days.length ? (recordedDays / days.length) * 100 : NaN;
+
+  const byWeekday = Array.from({ length: 7 }, () => []);
+  records.forEach(r => {
+    const idx = new Date(r.study_date + "T00:00:00").getDay();
+    byWeekday[idx].push(Number(r.score));
+  });
+  const weekdayAvg = byWeekday.map(items => items.length ? items.reduce((a, b) => a + b, 0) / items.length : 0);
+  const bestDayIndex = weekdayAvg.some(v => v > 0) ? weekdayAvg.indexOf(Math.max(...weekdayAvg)) : -1;
+
+  const bySubject = {};
+  records.forEach(r => {
+    bySubject[r.subject_name] = bySubject[r.subject_name] || [];
+    bySubject[r.subject_name].push(Number(r.score));
+  });
+  const subjectPairs = Object.entries(bySubject).map(([name, vals]) => ({
+    name,
+    avg: vals.reduce((a, b) => a + b, 0) / vals.length
+  })).sort((a, b) => b.avg - a.avg);
+
+  const bestSubject = subjectPairs.length ? subjectPairs[0].name : "-";
+  setKpis({
+    avgScore,
+    consistency,
+    bestDay: bestDayIndex >= 0 ? dayNameEs(bestDayIndex) : "-",
+    bestSubject
+  });
+
+  const trendLabels = days.map(formatMetricDate);
+  const trendValues = days.map(d => {
+    const key = toISODateLocal(d);
+    const items = dayMap[key] || [];
+    return items.length ? (items.reduce((a, b) => a + b, 0) / items.length) : null;
+  });
+
+  const tickColor = getComputedStyle(document.body).getPropertyValue("--muted").trim() || "#6f6252";
+  const gridColor = getComputedStyle(document.body).getPropertyValue("--line").trim() || "#cdbda7";
+  const accent = getComputedStyle(document.body).getPropertyValue("--accent").trim() || "#a64620";
+  const success = getComputedStyle(document.body).getPropertyValue("--success").trim() || "#2d6a3b";
+
+  trendChartInstance = createOrUpdateChart(trendChartInstance, refs.trendChart, {
+    type: "line",
+    data: {
+      labels: trendLabels,
+      datasets: [{
+        label: "Promedio diario",
+        data: trendValues,
+        borderColor: accent,
+        backgroundColor: accent,
+        spanGaps: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { min: 0, max: 5, ticks: { color: tickColor }, grid: { color: gridColor } },
+        x: { ticks: { color: tickColor, maxRotation: 0 }, grid: { color: gridColor } }
+      },
+      plugins: { legend: { labels: { color: tickColor } } }
+    }
+  });
+
+  weekdayChartInstance = createOrUpdateChart(weekdayChartInstance, refs.weekdayChart, {
+    type: "bar",
+    data: {
+      labels: ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"],
+      datasets: [{
+        label: "Promedio",
+        data: weekdayAvg.map(v => v || 0),
+        backgroundColor: success
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { min: 0, max: 5, ticks: { color: tickColor }, grid: { color: gridColor } },
+        x: { ticks: { color: tickColor }, grid: { color: gridColor } }
+      },
+      plugins: { legend: { labels: { color: tickColor } } }
+    }
+  });
+
+  subjectChartInstance = createOrUpdateChart(subjectChartInstance, refs.subjectChart, {
+    type: "bar",
+    data: {
+      labels: subjectPairs.map(p => p.name),
+      datasets: [{
+        label: "Promedio por materia",
+        data: subjectPairs.map(p => p.avg),
+        backgroundColor: accent
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { min: 0, max: 5, ticks: { color: tickColor }, grid: { color: gridColor } },
+        y: { ticks: { color: tickColor }, grid: { color: gridColor } }
+      },
+      plugins: { legend: { labels: { color: tickColor } } }
+    }
+  });
+}
+
 async function refreshUserConfigData(){
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
   if(userErr || !user?.id){
@@ -154,6 +366,7 @@ async function refreshUserConfigData(){
   renderSubjectsList();
   renderPlanPicker();
   renderPlansList();
+  refreshMetricsSubjectOptions();
   updateToggleSubjectsButton(currentWeekDate);
   updateActivePlanLabel(currentWeekDate);
 }
@@ -223,6 +436,7 @@ async function goToApp(){
   refs.dateInput.value = toISODateLocal(currentWeekDate);
   await refreshUserConfigData();
   await loadWeeklyTableAnimated(currentWeekDate);
+  await refreshMetrics();
 }
 
 async function loadWeeklyTable(baseDate, loadId){
@@ -417,6 +631,7 @@ refs.prevBtn.addEventListener("click", () => {
   currentWeekDate = normalizeDate(current);
   refs.dateInput.value = toISODateLocal(currentWeekDate);
   loadWeeklyTableAnimated(currentWeekDate);
+  refreshMetrics();
 });
 
 refs.nextBtn.addEventListener("click", () => {
@@ -425,11 +640,13 @@ refs.nextBtn.addEventListener("click", () => {
   currentWeekDate = normalizeDate(current);
   refs.dateInput.value = toISODateLocal(currentWeekDate);
   loadWeeklyTableAnimated(currentWeekDate);
+  refreshMetrics();
 });
 
 refs.dateInput.addEventListener("change", e => {
   currentWeekDate = normalizeDate(new Date(e.target.value));
   loadWeeklyTableAnimated(currentWeekDate);
+  refreshMetrics();
 });
 
 refs.toggleSubjectsBtn.addEventListener("click", () => {
@@ -437,6 +654,17 @@ refs.toggleSubjectsBtn.addEventListener("click", () => {
   updateToggleSubjectsButton(currentWeekDate);
   loadWeeklyTableAnimated(currentWeekDate);
 });
+
+refs.metricsPeriod?.addEventListener("change", () => {
+  const isCustom = refs.metricsPeriod.value === "custom";
+  refs.metricsFrom.style.display = isCustom ? "inline-flex" : "none";
+  refs.metricsTo.style.display = isCustom ? "inline-flex" : "none";
+  refreshMetrics();
+});
+refs.metricsFrom?.addEventListener("change", refreshMetrics);
+refs.metricsTo?.addEventListener("change", refreshMetrics);
+refs.metricsSubject?.addEventListener("change", refreshMetrics);
+refs.metricsRefreshBtn?.addEventListener("click", refreshMetrics);
 
 refs.btnManageSubjects.addEventListener("click", () => {
   refs.subjectsMsg.textContent = "";
@@ -477,6 +705,7 @@ refs.addSubjectBtn.addEventListener("click", async () => {
     refs.subjectNameInput.value = "";
     await refreshUserConfigData();
     await loadWeeklyTableAnimated(currentWeekDate);
+    await refreshMetrics();
     refs.subjectsMsg.textContent = "Materia creada.";
   }finally{
     refs.addSubjectBtn.disabled = false;
@@ -504,6 +733,7 @@ refs.subjectsList.addEventListener("click", async e => {
     }
     await refreshUserConfigData();
     await loadWeeklyTableAnimated(currentWeekDate);
+    await refreshMetrics();
   }finally{
     button.disabled = false;
   }
@@ -572,6 +802,7 @@ refs.createPlanBtn.addEventListener("click", async () => {
     refs.planSubjectsPicker.querySelectorAll("input[type='checkbox']").forEach(input => { input.checked = false; });
     await refreshUserConfigData();
     await loadWeeklyTableAnimated(currentWeekDate);
+    await refreshMetrics();
     refs.plansMsg.textContent = "Plan guardado.";
   }finally{
     refs.createPlanBtn.disabled = false;
@@ -597,6 +828,7 @@ refs.plansList.addEventListener("click", async e => {
     }
     await refreshUserConfigData();
     await loadWeeklyTableAnimated(currentWeekDate);
+    await refreshMetrics();
   }finally{
     button.disabled = false;
   }

@@ -7,6 +7,7 @@
 
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -92,6 +93,60 @@
         <tbody></tbody>
       </table>
     </div>
+
+    <section class="metrics-section">
+      <div class="metrics-head">
+        <h2 style="text-align:left">Metricas y patrones</h2>
+        <div class="stack" style="justify-content:flex-start">
+          <select id="metricsPeriod">
+            <option value="week">Semana</option>
+            <option value="month" selected>Mes</option>
+            <option value="year">Anio</option>
+            <option value="custom">Personalizado</option>
+          </select>
+          <input id="metricsFrom" type="date" style="display:none;" />
+          <input id="metricsTo" type="date" style="display:none;" />
+          <select id="metricsSubject">
+            <option value="__all__">Todas las materias</option>
+          </select>
+          <button id="metricsRefreshBtn" type="button">Actualizar</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <article class="kpi-card">
+          <p class="muted">Promedio general</p>
+          <b id="kpiAvgScore">-</b>
+        </article>
+        <article class="kpi-card">
+          <p class="muted">Consistencia</p>
+          <b id="kpiConsistency">-</b>
+        </article>
+        <article class="kpi-card">
+          <p class="muted">Mejor dia</p>
+          <b id="kpiBestDay">-</b>
+        </article>
+        <article class="kpi-card">
+          <p class="muted">Materia destacada</p>
+          <b id="kpiBestSubject">-</b>
+        </article>
+      </div>
+
+      <div class="charts-grid">
+        <article class="chart-card">
+          <h3>Tendencia diaria</h3>
+          <canvas id="trendChart"></canvas>
+        </article>
+        <article class="chart-card">
+          <h3>Promedio por dia</h3>
+          <canvas id="weekdayChart"></canvas>
+        </article>
+        <article class="chart-card chart-card-wide">
+          <h3>Promedio por materia</h3>
+          <canvas id="subjectChart"></canvas>
+        </article>
+      </div>
+    </section>
   </div>
 
   <div id="subjectsModal" class="modal-backdrop" style="display:none;">

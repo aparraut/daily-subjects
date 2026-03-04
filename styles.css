@@ -85,7 +85,8 @@ h2{
 input[type="email"],
 input[type="password"],
 input[type="date"],
-input[type="text"]{
+input[type="text"],
+select{
   min-height:42px;
   border-radius:12px;
   border:1px solid var(--line);
@@ -470,6 +471,79 @@ a.is-disabled{
   margin:14px 0;
 }
 
+.metrics-section{
+  margin-top:18px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--surface);
+  box-shadow:var(--shadow);
+  padding:14px;
+}
+
+.metrics-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:10px;
+}
+
+.kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(140px,1fr));
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.kpi-card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--surface-soft);
+  padding:10px;
+}
+
+.kpi-card p{
+  margin:0 0 8px;
+  font-size:.82rem;
+}
+
+.kpi-card b{
+  font-family:"Space Grotesk","Segoe UI",sans-serif;
+  font-size:1.15rem;
+}
+
+.charts-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(260px,1fr));
+  gap:10px;
+}
+
+.chart-card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--surface-soft);
+  padding:10px;
+}
+
+.chart-card h3{
+  margin:0 0 10px;
+  font-size:.92rem;
+}
+
+.chart-card canvas{
+  width:100% !important;
+  height:240px !important;
+}
+
+.chart-card-wide canvas{
+  height:300px !important;
+}
+
+.chart-card-wide{
+  grid-column:1 / -1;
+}
+
 @keyframes fade-slide{
   from{opacity:0;transform:translateY(10px)}
   to{opacity:1;transform:translateY(0)}
@@ -501,6 +575,14 @@ a.is-disabled{
   }
 
   .plan-picker{
+    grid-template-columns:1fr;
+  }
+
+  .kpi-grid{
+    grid-template-columns:repeat(2,minmax(130px,1fr));
+  }
+
+  .charts-grid{
     grid-template-columns:1fr;
   }
 

@@ -65,6 +65,16 @@ export async function fetchWeekData(supabase, baseDate){
   return { records: data||[], sunday, saturday };
 }
 
+export async function fetchScoresInRange(supabase, userId, fromDate, toDate){
+  return supabase
+    .from(TABLE)
+    .select("subject_name,study_date,score")
+    .eq("user_id", userId)
+    .gte("study_date", fromDate)
+    .lte("study_date", toDate)
+    .order("study_date", { ascending: true });
+}
+
 export async function fetchUserSubjects(supabase, userId, includeArchived = true){
   let query = supabase
     .from(SUBJECTS_TABLE)
