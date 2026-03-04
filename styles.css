@@ -84,7 +84,8 @@ h2{
 
 input[type="email"],
 input[type="password"],
-input[type="date"]{
+input[type="date"],
+input[type="text"]{
   min-height:42px;
   border-radius:12px;
   border:1px solid var(--line);
@@ -132,7 +133,11 @@ button:disabled{
 #prev_week,
 #next_week,
 #toggleSubjectsBtn,
-#recoveryCancel{
+#recoveryCancel,
+#btnManageSubjects,
+#btnManagePlans,
+#subjectsClose,
+#plansClose{
   color:var(--text);
   background:var(--surface-soft);
   border-color:var(--line);
@@ -189,6 +194,10 @@ button:disabled{
   box-shadow:var(--shadow);
   border:1px solid var(--line);
   background:var(--surface);
+}
+
+.plan-badge{
+  font-size:.93rem;
 }
 
 table{
@@ -346,6 +355,10 @@ a.is-disabled{
   padding:18px;
 }
 
+.modal-wide{
+  width:min(92vw,760px);
+}
+
 .modal-card h3{
   margin:0 0 8px;
 }
@@ -353,6 +366,108 @@ a.is-disabled{
 .modal-card input[type="password"]{
   width:100%;
   margin-top:8px;
+}
+
+.plan-form-grid{
+  display:grid;
+  grid-template-columns:2fr 1fr 1fr;
+  gap:10px;
+}
+
+.plan-form-grid label{
+  display:block;
+  font-size:.78rem;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  color:var(--muted);
+  margin-bottom:4px;
+}
+
+.plan-form-grid input{
+  width:100%;
+}
+
+.plan-picker{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(220px,1fr));
+  gap:8px;
+}
+
+.picker-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:8px 10px;
+  background:var(--surface-soft);
+}
+
+.picker-item input{
+  margin:0;
+}
+
+.item-list{
+  max-height:300px;
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.item-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:9px 10px;
+  background:var(--surface-soft);
+}
+
+.item-row.is-archived{
+  opacity:.72;
+}
+
+.chip{
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:2px 8px;
+  font-size:.74rem;
+  font-weight:700;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+
+.subject-meta{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+
+.plan-card{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px;
+  background:var(--surface-soft);
+}
+
+.plan-card-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.plan-card p{
+  margin:5px 0 0;
+}
+
+.soft-sep{
+  border:none;
+  border-top:1px solid var(--line);
+  margin:14px 0;
 }
 
 @keyframes fade-slide{
@@ -379,6 +494,19 @@ a.is-disabled{
   .week-selector button,
   .week-selector input[type="date"]{
     width:100%;
+  }
+
+  .plan-form-grid{
+    grid-template-columns:1fr;
+  }
+
+  .plan-picker{
+    grid-template-columns:1fr;
+  }
+
+  .item-row{
+    align-items:flex-start;
+    flex-direction:column;
   }
 
   .theme-toggle{

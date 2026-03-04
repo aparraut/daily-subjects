@@ -64,10 +64,13 @@
     </div>
 
     <p id="week_range"></p>
+    <p id="activePlanText" class="muted plan-badge" style="text-align:center;margin:0 0 12px;"></p>
 
     <!-- Toggle Activas / Historico -->
     <div class="stack" style="justify-content:center;margin:0 0 18px;">
       <button id="toggleSubjectsBtn">Ver historico (12)</button>
+      <button id="btnManageSubjects">Gestionar materias</button>
+      <button id="btnManagePlans">Planes por periodo</button>
     </div>
 
     <h2 style="text-align:center">Resumen semanal (Dom-Sab)</h2>
@@ -88,6 +91,58 @@
         </thead>
         <tbody></tbody>
       </table>
+    </div>
+  </div>
+
+  <div id="subjectsModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="subjectsTitle">
+      <h3 id="subjectsTitle">Gestionar materias</h3>
+      <p class="muted">Puedes crear nuevas materias y archivar/restaurar existentes. Archivar no borra puntajes historicos.</p>
+      <div class="stack" style="justify-content:flex-start;margin-top:8px;">
+        <label for="subjectNameInput" class="sr-only">Nombre de materia</label>
+        <input id="subjectNameInput" type="text" placeholder="Nueva materia" maxlength="70" />
+        <button id="addSubjectBtn" type="button" class="btn-home">Agregar</button>
+      </div>
+      <p id="subjectsMsg" class="muted" aria-live="polite" style="min-height:20px;margin:8px 0 0;"></p>
+      <div id="subjectsList" class="item-list" style="margin-top:10px;"></div>
+      <div class="stack" style="justify-content:flex-end;margin-top:10px;">
+        <button id="subjectsClose" type="button">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="plansModal" class="modal-backdrop" style="display:none;">
+    <div class="modal-card modal-wide" role="dialog" aria-modal="true" aria-labelledby="plansTitle">
+      <h3 id="plansTitle">Planes por periodo</h3>
+      <p class="muted">Define un rango de fechas y las materias que quieres registrar en ese periodo.</p>
+
+      <div class="plan-form-grid" style="margin-top:8px;">
+        <div>
+          <label for="planNameInput">Nombre</label>
+          <input id="planNameInput" type="text" maxlength="80" placeholder="Plan 4 meses" />
+        </div>
+        <div>
+          <label for="planStartInput">Inicio</label>
+          <input id="planStartInput" type="date" />
+        </div>
+        <div>
+          <label for="planEndInput">Fin</label>
+          <input id="planEndInput" type="date" />
+        </div>
+      </div>
+
+      <p class="muted" style="margin:10px 0 6px;">Materias del plan</p>
+      <div id="planSubjectsPicker" class="plan-picker"></div>
+      <div class="stack" style="justify-content:flex-start;margin-top:10px;">
+        <button id="createPlanBtn" type="button" class="btn-home">Guardar plan</button>
+      </div>
+      <p id="plansMsg" class="muted" aria-live="polite" style="min-height:20px;margin:8px 0 0;"></p>
+
+      <hr class="soft-sep">
+      <div id="plansList" class="item-list"></div>
+      <div class="stack" style="justify-content:flex-end;margin-top:10px;">
+        <button id="plansClose" type="button">Cerrar</button>
+      </div>
     </div>
   </div>
 
