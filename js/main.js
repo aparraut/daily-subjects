@@ -174,8 +174,18 @@ function updateActivePlanLabel(baseDate){
 function refreshMetricsSubjectOptions(){
   const current = refs.metricsSubject.value || "__all__";
   const names = getAllSubjectNames().sort((a, b) => a.localeCompare(b, "es"));
-  refs.metricsSubject.innerHTML = `<option value="__all__">Todas las materias</option>` +
-    names.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("");
+  refs.metricsSubject.innerHTML = "";
+  const allOption = document.createElement("option");
+  allOption.value = "__all__";
+  allOption.textContent = "Todas las materias";
+  refs.metricsSubject.appendChild(allOption);
+
+  names.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    refs.metricsSubject.appendChild(opt);
+  });
   refs.metricsSubject.value = names.includes(current) || current === "__all__" ? current : "__all__";
 }
 
@@ -405,7 +415,7 @@ function renderPlanPicker(){
   }
   refs.planSubjectsPicker.innerHTML = selectable.map(sub => `
     <label class="picker-item">
-      <input type="checkbox" value="${escapeHtml(sub.name)}">
+      <input type="checkbox" value="${sub.id}">
       <span>${escapeHtml(sub.name)}</span>
     </label>
   `).join("");
@@ -756,7 +766,7 @@ refs.createPlanBtn.addEventListener("click", async () => {
   const name = normalizeSubjectName(refs.planNameInput.value);
   const startDate = refs.planStartInput.value;
   const endDate = refs.planEndInput.value;
-  const selectedSubjects = Array.from(refs.planSubjectsPicker.querySelectorAll("input[type='checkbox']:checked"))
+  const selectedSubjectIds = Array.from(refs.planSubjectsPicker.querySelectorAll("input[type='checkbox']:checked"))
     .map(input => input.value);
 
   if(!name || !startDate || !endDate){
@@ -767,7 +777,7 @@ refs.createPlanBtn.addEventListener("click", async () => {
     refs.plansMsg.textContent = "La fecha fin no puede ser anterior al inicio.";
     return;
   }
-  if(selectedSubjects.length === 0){
+  if(selectedSubjectIds.length === 0){
     refs.plansMsg.textContent = "Selecciona al menos una materia.";
     return;
   }
@@ -790,10 +800,15 @@ refs.createPlanBtn.addEventListener("click", async () => {
       name,
       start_date: startDate,
       end_date: endDate,
-      subjects: selectedSubjects
+      subject_ids: selectedSubjectIds
     });
     if(error){
-      refs.plansMsg.textContent = "No se pudo guardar el plan: " + error.message;
+      const msg = String(error.message || "");
+      if(msg.includes("subject_plans_no_overlap") || msg.toLowerCase().includes("exclusion constraint")){
+        refs.plansMsg.textContent = "No se pudo guardar: ya existe otro plan que se superpone en ese rango.";
+      }else{
+        refs.plansMsg.textContent = "No se pudo guardar el plan: " + msg;
+      }
       return;
     }
     refs.planNameInput.value = "";

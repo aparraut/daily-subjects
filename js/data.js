@@ -142,7 +142,7 @@ export async function fetchPlans(supabase, userId){
 
   const { data: items, error: itemsErr } = await supabase
     .from(PLAN_ITEMS_TABLE)
-    .select("plan_id,subject_name")
+    .select("plan_id,subject_id,subject_name,subject_name_snapshot")
     .in("plan_id", planIds);
   if(itemsErr){
     return { data: [], error: itemsErr };
@@ -151,7 +151,10 @@ export async function fetchPlans(supabase, userId){
   const byPlan = {};
   (items || []).forEach(it => {
     byPlan[it.plan_id] = byPlan[it.plan_id] || [];
-    byPlan[it.plan_id].push(it.subject_name);
+    const displayName = it.subject_name_snapshot || it.subject_name;
+    if(displayName){
+      byPlan[it.plan_id].push(displayName);
+    }
   });
 
   const merged = (plans || []).map(plan => ({
@@ -175,34 +178,17 @@ export function getActivePlanForDate(plans, date){
 }
 
 export async function createPlan(supabase, payload){
-  const { data: plan, error: planErr } = await supabase
-    .from(PLANS_TABLE)
-    .insert({
-      user_id: payload.user_id,
-      name: payload.name,
-      start_date: payload.start_date,
-      end_date: payload.end_date
-    })
-    .select("id,user_id,name,start_date,end_date,created_at")
-    .single();
-
-  if(planErr){
-    return { data: null, error: planErr };
+  const { data, error } = await supabase.rpc("create_subject_plan", {
+    p_name: payload.name,
+    p_start_date: payload.start_date,
+    p_end_date: payload.end_date,
+    p_subject_ids: payload.subject_ids || []
+  });
+  if(error){
+    return { data: null, error };
   }
-
-  const items = (payload.subjects || []).map(subjectName => ({
-    plan_id: plan.id,
-    subject_name: subjectName
-  }));
-
-  if(items.length > 0){
-    const { error: itemsErr } = await supabase.from(PLAN_ITEMS_TABLE).insert(items);
-    if(itemsErr){
-      return { data: null, error: itemsErr };
-    }
-  }
-
-  return { data: { ...plan, subjects: [...(payload.subjects || [])] }, error: null };
+  const plan = Array.isArray(data) ? data[0] : data;
+  return { data: plan || null, error: null };
 }
 
 export async function deletePlan(supabase, userId, planId){
