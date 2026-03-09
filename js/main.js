@@ -149,6 +149,14 @@ function subjectNamesForWeek(baseDate, records){
   return list.sort((a, b) => a.localeCompare(b, "es"));
 }
 
+function subjectNamesForAutoSeed(baseDate){
+  const plan = getActivePlanForDate(plans, baseDate);
+  if(plan?.subjects?.length){
+    return [...new Set(plan.subjects)];
+  }
+  return [...new Set(getActiveSubjectNames())];
+}
+
 function updateToggleSubjectsButton(baseDate){
   const plan = getActivePlanForDate(plans, baseDate);
   const baseCount = plan?.subjects?.length ? plan.subjects.length : getActiveSubjectNames().length;
@@ -461,11 +469,15 @@ async function goToApp(){
 async function loadWeeklyTable(baseDate, loadId){
   const { records, sunday, saturday } = await fetchWeekData(supabase, baseDate);
   if(loadId !== latestLoadId) return;
+  const todayIso = toISODateLocal(normalizeDate(new Date()));
+  const todayInWeek = todayIso >= toISODateLocal(sunday) && todayIso <= toISODateLocal(saturday);
 
   const weekNumber = calculateWeekNumber(baseDate);
   refs.weekRangeEl.textContent = `Semana ${weekNumber}: ${formatDate(sunday)} - ${formatDate(saturday)}`;
 
   const visibleSubjects = subjectNamesForWeek(baseDate, records);
+  const autoSeedSubjects = subjectNamesForAutoSeed(baseDate);
+  const autoSeedSet = new Set(autoSeedSubjects);
   updateToggleSubjectsButton(baseDate);
   updateActivePlanLabel(baseDate);
   const grouped = {};
@@ -473,7 +485,42 @@ async function loadWeeklyTable(baseDate, loadId){
     grouped[sub] = Array(7).fill("");
   });
 
-  records.forEach(r => {
+  const weekRecords = [...(records || [])];
+  const autoSeededToday = new Set();
+  if(todayInWeek && autoSeedSubjects.length){
+    const todayRecorded = new Set(
+      weekRecords
+        .filter(r => r.study_date === todayIso)
+        .map(r => r.subject_name)
+    );
+    const missingToday = autoSeedSubjects.filter(sub => !todayRecorded.has(sub));
+    if(missingToday.length){
+      const { data: { user }, error: getUserErr } = await supabase.auth.getUser();
+      if(getUserErr){
+        console.error("[getUser] error while auto-seeding:", getUserErr);
+      }else if(user?.id){
+        const payload = missingToday.map(subject => ({
+          user_id: user.id,
+          subject_name: subject,
+          study_date: todayIso,
+          score: 1,
+          custom_week_number: getCustomWeekNumber(todayIso)
+        }));
+        const { error: upsertErr } = await upsertDailyScore(supabase, payload);
+        if(upsertErr){
+          console.error("[auto-seed] UPSERT error:", upsertErr);
+          showNotice(refs, "No se pudo inicializar el valor 1 de hoy en todas las materias.", "error");
+        }else{
+          payload.forEach(row => {
+            weekRecords.push(row);
+            autoSeededToday.add(row.subject_name);
+          });
+        }
+      }
+    }
+  }
+
+  weekRecords.forEach(r => {
     const d = normalizeDate(new Date(r.study_date + "T00:00:00"));
     const dayIndex = d.getDay();
     if(!grouped[r.subject_name]) grouped[r.subject_name] = Array(7).fill("");
@@ -495,7 +542,8 @@ async function loadWeeklyTable(baseDate, loadId){
       const currentDate = new Date(sunday);
       currentDate.setDate(sunday.getDate() + i);
       const isoDate = toISODateLocal(currentDate);
-      const value = (grouped[sub] ? grouped[sub][i] : "") || "";
+      const storedValue = (grouped[sub] ? grouped[sub][i] : "") || "";
+      const value = isoDate === todayIso && storedValue === "" && autoSeedSet.has(sub) ? "1" : storedValue;
       if(value) total += Number(value);
 
       const dayCell = document.createElement("td");
@@ -508,6 +556,10 @@ async function loadWeeklyTable(baseDate, loadId){
       input.dataset.subject = sub;
       input.dataset.date = isoDate;
       input.value = value;
+      if(isoDate === todayIso && autoSeededToday.has(sub) && String(value) === "1"){
+        input.classList.add("is-auto-seeded");
+        input.title = "Valor inicial automatico";
+      }
       dayCell.appendChild(input);
       row.appendChild(dayCell);
     }
@@ -543,6 +595,8 @@ async function loadWeeklyTable(baseDate, loadId){
   document.querySelectorAll("input[data-subject]").forEach(input => {
     input.addEventListener("input", e => {
       isValidScoreInput(e.target);
+      e.target.classList.remove("is-auto-seeded");
+      e.target.removeAttribute("title");
       updateRowTotal(e.target.closest("tr"), getProgressColor);
     });
     input.addEventListener("blur", onBlurSave);

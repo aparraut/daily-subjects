@@ -318,6 +318,11 @@ td input:focus-visible{
   outline-offset:1px;
 }
 
+td input.is-auto-seeded{
+  background:color-mix(in srgb, var(--accent-soft) 30%, var(--surface-soft) 70%);
+  border-color:color-mix(in srgb, var(--accent) 42%, var(--line) 58%);
+}
+
 td input.is-saving{outline:2px solid #d69e2e}
 td input.is-save-ok{outline:2px solid var(--success)}
 td input.is-save-error{outline:2px solid var(--danger)}
