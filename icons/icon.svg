@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#b24822" />
+      <stop offset="100%" stop-color="#8e3918" />
+    </linearGradient>
+    <clipPath id="circle-clip">
+      <rect x="32" y="32" width="448" height="448" rx="100" />
+    </clipPath>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect x="0" y="0" width="512" height="512" rx="128" fill="#172231" />
+  
+  <g clip-path="url(#circle-clip)">
+    <!-- Inner design with gradient -->
+    <rect x="32" y="32" width="448" height="448" rx="80" fill="url(#bg-grad)" />
+    
+    <!-- Checklist/subject grid emblem -->
+    <!-- Document background sheet -->
+    <rect x="146" y="120" width="220" height="272" rx="24" fill="#fff9f0" />
+    
+    <!-- Title indicator lines / header -->
+    <rect x="180" y="160" width="100" height="20" rx="6" fill="#8e3918" opacity="0.85" />
+    
+    <!-- Grid/checklist rows -->
+    <!-- Row 1 -->
+    <circle cx="195" cy="225" r="14" fill="#2f7a46" />
+    <rect x="225" y="217" width="100" height="15" rx="5" fill="#6f604d" opacity="0.6" />
+    
+    <!-- Row 2 -->
+    <circle cx="195" cy="275" r="14" fill="#b24822" />
+    <rect x="225" y="267" width="100" height="15" rx="5" fill="#6f604d" opacity="0.6" />
+
+    <!-- Row 3 -->
+    <circle cx="195" cy="325" r="14" fill="#e6d4bd" />
+    <rect x="225" y="317" width="100" height="15" rx="5" fill="#6f604d" opacity="0.6" />
+  </g>
+</svg>

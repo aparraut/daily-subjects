@@ -1,0 +1,27 @@
+{
+  "name": "Materias Diarias",
+  "short_name": "Materias",
+  "description": "Seguimiento semanal de materias y desempeño diario.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0e141c",
+  "theme_color": "#b24822",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "./icons/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+}
